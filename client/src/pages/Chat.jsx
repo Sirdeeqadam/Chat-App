@@ -172,6 +172,9 @@ const Chat = () => {
   const [userSearch, setUserSearch] =
     useState("");
 
+  const [mobileMenuOpen, setMobileMenuOpen] =
+    useState(false);
+
   // ===================================================
   // ROOMS
   // ===================================================
@@ -3703,7 +3706,13 @@ const Chat = () => {
   // ===================================================
 
   return (
-    <div className="chat-page">
+    <div
+      className={`chat-page ${
+        selectedUser || selectedRoom
+          ? "has-active-conversation"
+          : ""
+      }`}
+    >
 
       {/* =================================================
           HEADER
@@ -3813,9 +3822,39 @@ const Chat = () => {
             onClick={
               handleLogout
             }
+            className="dashboard-logout-button"
           >
             {t.logout}
           </button>
+
+          <div className="dashboard-overflow-menu">
+            <button
+              type="button"
+              className="dashboard-overflow-toggle"
+              onClick={() =>
+                setMobileMenuOpen((previous) => !previous)
+              }
+              title="More options"
+              aria-label="More options"
+              aria-expanded={mobileMenuOpen}
+            >
+              <span aria-hidden="true">&#8942;</span>
+            </button>
+
+            {mobileMenuOpen && (
+              <div className="dashboard-overflow-panel">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                >
+                  {t.logout}
+                </button>
+              </div>
+            )}
+          </div>
 
         </div>
       </header>
