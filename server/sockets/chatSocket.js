@@ -4,6 +4,7 @@ const Message = require("../models/Message");
 const Room = require("../models/Room");
 const ReadState = require("../models/ReadState");
 const User = require("../models/User");
+const Friendship = require("../models/Friendship");
 
 const {
   normalizeLanguageCode,
@@ -66,6 +67,16 @@ const normalizeUserId = (userId) =>
   userId == null
     ? ""
     : String(userId).trim();
+
+const areFriends = async (firstUserId, secondUserId) => {
+  return Boolean(await Friendship.exists({
+    status: "accepted",
+    $or: [
+      { requester: firstUserId, recipient: secondUserId },
+      { requester: secondUserId, recipient: firstUserId },
+    ],
+  }));
+};
 
 // =========================================================
 // CONNECTED USER HELPERS
@@ -1712,6 +1723,14 @@ const initializeChatSocket = (
                 socket,
                 "message_error",
                 "You cannot send a message to yourself."
+              );
+            }
+
+            if (!await areFriends(userId, receiverId)) {
+              return emitError(
+                socket,
+                "message_error",
+                "You can only chat with accepted friends."
               );
             }
 

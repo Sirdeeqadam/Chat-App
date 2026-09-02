@@ -26,6 +26,12 @@ const readStateRoutes =
 const profileRoutes =
   require("./routes/profileRoutes");
 
+const friendRoutes =
+  require("./routes/friendRoutes");
+
+const searchRoutes =
+  require("./routes/searchRoutes");
+
 // =========================================================
 // SOCKET
 // =========================================================
@@ -347,6 +353,16 @@ app.use(
 app.use(
   "/api/profile",
   profileRoutes
+);
+
+app.use(
+  "/api/friends",
+  friendRoutes
+);
+
+app.use(
+  "/api/search",
+  searchRoutes
 );
 
 // =========================================================

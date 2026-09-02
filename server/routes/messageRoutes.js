@@ -12,6 +12,9 @@ const Message =
 const ReadState =
   require("../models/ReadState");
 
+const Friendship =
+  require("../models/Friendship");
+
 const authMiddleware =
   require("../middleware/authMiddleware");
 
@@ -128,6 +131,16 @@ const attachmentUpload = multer({
 
 const isValidObjectId = (value) =>
   mongoose.Types.ObjectId.isValid(value);
+
+const areFriends = async (firstUserId, secondUserId) => {
+  return Boolean(await Friendship.exists({
+    status: "accepted",
+    $or: [
+      { requester: firstUserId, recipient: secondUserId },
+      { requester: secondUserId, recipient: firstUserId },
+    ],
+  }));
+};
 
 router.post(
   "/audio",
@@ -249,6 +262,12 @@ router.get(
         return res.status(400).json({
           message:
             "Invalid private conversation",
+        });
+      }
+
+      if (!await areFriends(userId, otherUserId)) {
+        return res.status(403).json({
+          message: "You can only chat with accepted friends.",
         });
       }
 
@@ -419,6 +438,12 @@ router.post(
         return res.status(400).json({
           message:
             "Invalid user ID",
+        });
+      }
+
+      if (!await areFriends(userId, otherUserId)) {
+        return res.status(403).json({
+          message: "You can only chat with accepted friends.",
         });
       }
 

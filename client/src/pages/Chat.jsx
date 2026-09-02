@@ -21,8 +21,16 @@ import {
 } from "../context/LanguageContext";
 
 import LanguageSelector from "../components/LanguageSelector";
+import AddFriendsPicker from "../components/AddFriendsPicker";
 import VoiceRecorder from "../components/VoiceRecorder";
 import FileAttachmentPicker from "../components/FileAttachmentPicker";
+
+import {
+  getFriends,
+  sendFriendRequest,
+  updateFriendRequest,
+} from "../services/friendService";
+import { searchApp } from "../services/searchService";
 
 import {
   discoverRooms,
@@ -144,6 +152,12 @@ const Chat = () => {
   const [users, setUsers] =
     useState([]);
 
+  const [friendSearchResults, setFriendSearchResults] =
+    useState([]);
+
+  const [pendingFriendRequests, setPendingFriendRequests] =
+    useState([]);
+
   const [selectedUser, setSelectedUser] =
     useState(null);
 
@@ -152,6 +166,9 @@ const Chat = () => {
 
   const [message, setMessage] =
     useState("");
+
+  const [lastMessageTime, setLastMessageTime] =
+    useState({});
 
   // ===================================================
   // GENERAL
@@ -171,6 +188,12 @@ const Chat = () => {
 
   const [userSearch, setUserSearch] =
     useState("");
+
+  const [globalSearchResults, setGlobalSearchResults] =
+    useState({ friends: [], groups: [], messages: [], links: [] });
+
+  const [globalSearchLoading, setGlobalSearchLoading] =
+    useState(false);
 
   const [mobileMenuOpen, setMobileMenuOpen] =
     useState(false);
@@ -810,49 +833,93 @@ const Chat = () => {
   // LOAD USERS
   // ===================================================
 
-  const loadUsers =
+  const loadFriends =
     useCallback(async () => {
       if (!currentUserId) {
         return;
       }
 
       try {
-        const response =
-          await api.get(
-            "/auth/users"
-          );
-
-        const data =
-          Array.isArray(
-            response.data
-          )
-            ? response.data
-            : [];
-
+        const relationships = await getFriends();
         setUsers(
-          data.filter(
-            (item) =>
-              getUserId(item) !==
-              currentUserId
+          relationships
+            .filter((item) => item.status === "accepted")
+            .map((item) => item.user)
+            .filter(Boolean)
+        );
+        setPendingFriendRequests(
+          relationships.filter(
+            (item) => item.status === "pending" && item.direction === "incoming"
           )
         );
       } catch (error) {
-        console.error(
-          "Failed to load users:",
-          error
-        );
+        console.error("Failed to load friends:", error);
 
         setSocketError(
           error.response?.data
             ?.message ||
-            "Failed to load users."
+            "Failed to load friends."
         );
       }
     }, [currentUserId]);
 
   useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
+    loadFriends();
+  }, [loadFriends]);
+
+  useEffect(() => {
+    const refreshTimer = setInterval(loadFriends, 30000);
+    return () => clearInterval(refreshTimer);
+  }, [loadFriends]);
+
+  useEffect(() => {
+    const query = userSearch.trim();
+    if (query.length < 2) {
+      setGlobalSearchResults({ friends: [], groups: [], messages: [], links: [] });
+      return undefined;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setGlobalSearchLoading(true);
+      searchApp(query)
+        .then((results) => {
+          if (!cancelled) setGlobalSearchResults(results);
+        })
+        .catch((error) => {
+          console.error("Failed to search the app:", error);
+          if (!cancelled) setGlobalSearchResults({ friends: [], groups: [], messages: [], links: [] });
+        })
+        .finally(() => {
+          if (!cancelled) setGlobalSearchLoading(false);
+        });
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [userSearch]);
+
+  const handleFriendRequest = async (targetId) => {
+    try {
+      await sendFriendRequest(targetId);
+      setFriendSearchResults((previous) => previous.map((item) =>
+        getUserId(item) === String(targetId) ? { ...item, relationship: "outgoing" } : item
+      ));
+    } catch (error) {
+      setSocketError(error.response?.data?.message || "Failed to send friend request.");
+    }
+  };
+
+  const handleFriendRequestUpdate = async (requestId, action) => {
+    try {
+      await updateFriendRequest(requestId, action);
+      await loadFriends();
+    } catch (error) {
+      setSocketError(error.response?.data?.message || "Failed to update friend request.");
+    }
+  };
 
   // ===================================================
   // PROFILE UPDATED IN CURRENT TAB
@@ -1407,6 +1474,16 @@ const Chat = () => {
         if (!otherUserId) {
           return;
         }
+
+        // Track last message time for recent chats
+        setLastMessageTime(
+          (previousTimes) => ({
+            ...previousTimes,
+            [otherUserId]:
+              newMessage.createdAt ||
+              Date.now(),
+          })
+        );
 
         const selected =
           selectedUserRef.current;
@@ -2679,6 +2756,14 @@ const Chat = () => {
           selectedUser._id
         );
 
+      // Track last message time for recent chats
+      setLastMessageTime(
+        (previousTimes) => ({
+          ...previousTimes,
+          [receiver]: Date.now(),
+        })
+      );
+
       clearTypingTimer();
 
       socket.emit(
@@ -3685,21 +3770,7 @@ const Chat = () => {
   const normalizedUserSearch =
     userSearch.trim().toLowerCase();
 
-  const filteredUsers =
-    users.filter((item) => {
-      if (!normalizedUserSearch) {
-        return true;
-      }
-
-      return [
-        item?.username,
-        item?.email,
-      ].some((value) =>
-        String(value || "")
-          .toLowerCase()
-          .includes(normalizedUserSearch)
-      );
-    });
+  const filteredUsers = users;
 
   // ===================================================
   // RENDER
@@ -3761,30 +3832,31 @@ const Chat = () => {
 
         <div className="chat-header-actions">
 
-          <button
-            type="button"
-            className={`dashboard-search-toggle ${
-              searchOpen ? "active" : ""
-            }`}
-            onClick={() => {
-              setSearchOpen((previous) => {
-                if (!previous) {
-                  setActiveView("chats");
-                }
+          <div className="dashboard-search-group">
+            <button
+              type="button"
+              className={`dashboard-search-toggle ${
+                searchOpen ? "active" : ""
+              }`}
+              onClick={() => {
+                setSearchOpen((previous) => {
+                  if (!previous) {
+                    setActiveView("chats");
+                  }
 
-                return !previous;
-              });
-              setUserSearch("");
-            }}
-            title="Search users"
-            aria-label="Search users"
-            aria-expanded={searchOpen}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <circle cx="10.8" cy="10.8" r="6.2" />
-              <path d="m16 16 4.5 4.5" />
-            </svg>
-          </button>
+                  return !previous;
+                });
+                setUserSearch("");
+              }}
+              title="Search"
+              aria-label="Search"
+              aria-expanded={searchOpen}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="10.8" cy="10.8" r="6.2" />
+                <path d="m16 16 4.5 4.5" />
+              </svg>
+            </button>
 
           {searchOpen && (
             <div className="dashboard-search">
@@ -3795,11 +3867,12 @@ const Chat = () => {
 
               <input
                 type="search"
+                name="user-search"
                 value={userSearch}
                 onChange={(event) => setUserSearch(event.target.value)}
-                placeholder="Search users..."
+                placeholder="Search"
                 autoFocus
-                aria-label="Search users"
+                aria-label="Search"
               />
 
               {userSearch && (
@@ -3815,6 +3888,89 @@ const Chat = () => {
             </div>
           )}
 
+          {searchOpen && normalizedUserSearch.length >= 2 && (
+            <div className="global-search-results">
+              {globalSearchLoading ? (
+                <p className="global-search-empty">Searching...</p>
+              ) : (
+                <>
+                  {globalSearchResults.friends.length > 0 && (
+                    <section>
+                      <h4>Friends</h4>
+                      {globalSearchResults.friends.map((friend) => (
+                        <button type="button" className="global-search-result" key={friend._id} onClick={() => {
+                          selectUser(friend);
+                          setSearchOpen(false);
+                          setUserSearch("");
+                        }}>
+                          <strong>{friend.username}</strong>
+                          <span>{friend.email}</span>
+                        </button>
+                      ))}
+                    </section>
+                  )}
+
+                  {globalSearchResults.groups.length > 0 && (
+                    <section>
+                      <h4>Groups</h4>
+                      {globalSearchResults.groups.map((group) => (
+                        <button type="button" className="global-search-result" key={group._id} onClick={() => {
+                          openRoom(group);
+                          setSearchOpen(false);
+                          setUserSearch("");
+                        }}>
+                          <strong>{group.name}</strong>
+                          <span>{group.description || `${group.members?.length || 0} members`}</span>
+                        </button>
+                      ))}
+                    </section>
+                  )}
+
+                  {globalSearchResults.messages.length > 0 && (
+                    <section>
+                      <h4>Messages</h4>
+                      {globalSearchResults.messages.map((result) => (
+                        <button type="button" className="global-search-result" key={result._id} onClick={() => {
+                          if (result.roomId) {
+                            const room = rooms.find((item) => String(item._id) === String(result.roomId));
+                            if (room) openRoom(room);
+                          } else {
+                            const otherUser = String(getUserId(result.sender)) === currentUserId ? result.receiver : result.sender;
+                            if (otherUser) selectUser(otherUser);
+                          }
+                          setSearchOpen(false);
+                          setUserSearch("");
+                        }}>
+                          <strong>{result.message || result.attachmentName || "Attachment"}</strong>
+                          <span>{result.sender?.username || "Message"}</span>
+                        </button>
+                      ))}
+                    </section>
+                  )}
+
+                  {globalSearchResults.links.length > 0 && (
+                    <section>
+                      <h4>Links</h4>
+                      {globalSearchResults.links.map((link) => (
+                        <a className="global-search-result" href={link.url} target="_blank" rel="noreferrer" key={link.id}>
+                          <strong>{link.url}</strong>
+                          <span>Open link</span>
+                        </a>
+                      ))}
+                    </section>
+                  )}
+
+                  {!globalSearchResults.friends.length && !globalSearchResults.groups.length && !globalSearchResults.messages.length && !globalSearchResults.links.length && (
+                    <p className="global-search-empty">No results found.</p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+          </div>
+
+          <AddFriendsPicker className="header-add-friends-picker" />
+
           <LanguageSelector />
 
           <button
@@ -3824,6 +3980,7 @@ const Chat = () => {
             }
             className="dashboard-logout-button"
           >
+
             {t.logout}
           </button>
 
@@ -4030,7 +4187,7 @@ const Chat = () => {
         </div>
 
         {/* =================================================
-            PRIVATE USERS
+            RECENT CHATS
         ================================================== */}
 
         {activeView ===
@@ -4038,29 +4195,41 @@ const Chat = () => {
           <>
             <div className="sidebar-title">
 
-              <h3>
-                {t.users}
-              </h3>
+              <div className="sidebar-title-left">
+                <h3>
+                  Chats
+                </h3>
 
-              <p>
-                {onlineUsers.length}{" "}
-                {t.online}
-              </p>
+                <p>
+                  Recent messages
+                </p>
+              </div>
+
+              <AddFriendsPicker className="sidebar-add-friends-picker" />
 
             </div>
 
             <div className="user-list">
 
-              {filteredUsers.length ===
+              {users.length ===
               0 ? (
                 <p>
-                  {normalizedUserSearch
-                    ? "No users found."
-                    : "No other users found."}
+                  No recent chats. Use the Add Friends button to start chatting.
                 </p>
               ) : (
-                filteredUsers.map(
-                  (item) => {
+                users
+                  .map((item) => ({
+                    ...item,
+                    lastTime:
+                      lastMessageTime[
+                        getUserId(item)
+                      ] || 0,
+                  }))
+                  .sort((a, b) =>
+                    b.lastTime -
+                    a.lastTime
+                  )
+                  .map((item) => {
                     const itemId =
                       getUserId(item);
 
@@ -4225,6 +4394,7 @@ const Chat = () => {
 
                 <input
                   type="text"
+                  name="room-name"
                   placeholder="Room name..."
                   value={roomName}
                   maxLength={50}
@@ -4237,6 +4407,7 @@ const Chat = () => {
                 />
 
                 <textarea
+                  name="room-description"
                   placeholder="Room description (optional)..."
                   value={roomDescription}
                   maxLength={500}
@@ -4294,6 +4465,7 @@ const Chat = () => {
 
                 <input
                   type="text"
+                  name="room-code"
                   placeholder="6-character room code"
                   value={roomCode}
                   maxLength={6}
@@ -4595,6 +4767,23 @@ const Chat = () => {
             <>
               <div className="conversation-header">
 
+                <button
+                  type="button"
+                  className="conversation-back-button mobile-back-button"
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setMessages([]);
+                    setMessage("");
+                    setSocketError("");
+                  }}
+                  title="Back to chats"
+                  aria-label="Back to chats"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+
                 <div className="private-conversation-user">
 
                   {getImageUrl(
@@ -4708,6 +4897,23 @@ const Chat = () => {
                     </div>
                   ) : (
                     <div className="active-call">
+                      <div className="active-call-topbar">
+                        <div className="active-call-peer">
+                          <span className="active-call-avatar">
+                            {getInitial(selectedUser?.username || incomingCall?.username || "U")}
+                          </span>
+                          <span>
+                            <strong>{selectedUser?.username || incomingCall?.username || "User"}</strong>
+                            <small>
+                              {callStatus === "calling" ? "Calling" : "Connected"}
+                            </small>
+                          </span>
+                        </div>
+                        <span className="active-call-type">
+                          {callType === "video" ? "Video call" : "Voice call"}
+                        </span>
+                      </div>
+
                       {callType === "video" && (
                         <>
                           <video
@@ -4745,7 +4951,13 @@ const Chat = () => {
                           title={isMuted ? "Unmute" : "Mute"}
                           aria-label={isMuted ? "Unmute" : "Mute"}
                         >
-                          {isMuted ? "Unmute" : "Mute"}
+                          <span className="call-control-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 5.2 2" />
+                              <path d="M5 11a7 7 0 0 0 12.2 4.7M12 18v3M8 21h8M19 11v1a7 7 0 0 1-.2 1.6M5 5l14 14" />
+                            </svg>
+                          </span>
+                          <span>{isMuted ? "Unmute" : "Mute"}</span>
                         </button>
 
                         {callType === "video" && (
@@ -4756,7 +4968,13 @@ const Chat = () => {
                             title={cameraEnabled ? "Turn camera off" : "Turn camera on"}
                             aria-label={cameraEnabled ? "Turn camera off" : "Turn camera on"}
                           >
-                            {cameraEnabled ? "Camera" : "Camera off"}
+                            <span className="call-control-icon">
+                              <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <rect x="3" y="6" width="12" height="12" rx="2" />
+                                <path d="m15 10 6-3v10l-6-3Z" />
+                              </svg>
+                            </span>
+                            <span>{cameraEnabled ? "Camera" : "Camera off"}</span>
                           </button>
                         )}
 
@@ -4765,7 +4983,12 @@ const Chat = () => {
                           className="end-call-button"
                           onClick={() => stopCall(true)}
                         >
-                          End call
+                          <span className="call-control-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M5 10.5a11 11 0 0 1 14 0l-1.6 3.2-3-1.1-.9-2.1a8 8 0 0 0-3 0l-.9 2.1-3 1.1Z" />
+                            </svg>
+                          </span>
+                          <span>End</span>
                         </button>
                       </div>
                     </div>
@@ -4934,6 +5157,7 @@ const Chat = () => {
 
                   <input
                     type="text"
+                    name="private-message"
                     value={message}
                     placeholder={`${t.typeMessage} ${selectedUser.username}...`}
                     onChange={
@@ -5578,6 +5802,7 @@ const Chat = () => {
 
                   <input
                     type="text"
+                    name="room-message"
                     value={roomMessage}
                     placeholder={`Message ${selectedRoom.name}...`}
                     onChange={
