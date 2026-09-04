@@ -55,19 +55,14 @@ const userSchema = new mongoose.Schema(
     },
 
     // =====================================================
-    // PASSWORD
-    // =====================================================
-    //
-    // IMPORTANT:
-    // Never send this field to the frontend.
-    //
-    // Your socket USER_FIELDS already excludes it.
+    // PASSWORD & AUTH SECURITY
     // =====================================================
 
     password: {
       type: String,
       required: true,
       minlength: 6,
+      select: false, // Ensures password isn't leaked by default in queries
     },
 
     passwordResetTokenHash: {
@@ -134,7 +129,4 @@ const userSchema = new mongoose.Schema(
 // MODEL
 // =========================================================
 
-module.exports = mongoose.model(
-  "User",
-  userSchema
-);
+module.exports = mongoose.model("User", userSchema);
