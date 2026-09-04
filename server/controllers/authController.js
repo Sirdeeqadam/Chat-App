@@ -1,7 +1,6 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-// FIX: Point to your main sendEmail utility instead of config/nodemailer
 const { sendEmail } = require("../utils/sendEmail");
 
 // Helper: Generate 6-digit numeric OTP
@@ -36,8 +35,8 @@ exports.registerUser = async (req, res) => {
       password: hashedPassword,
       language: language || "English",
       isVerified: false,
-      verificationOtp: otp,
-      verificationOtpExpires: otpExpires,
+      verificationCodeHash: otp,
+      verificationCodeExpiresAt: otpExpires,
     });
 
     await sendEmail({
@@ -79,13 +78,21 @@ exports.verifyEmail = async (req, res) => {
       return res.status(400).json({ message: "Email is already verified. Please log in." });
     }
 
-    if (user.verificationOtp !== otp.trim() || new Date() > user.verificationOtpExpires) {
+    const storedOtp = String(user.verificationCodeHash || "").trim();
+    const inputOtp = String(otp || "").trim();
+
+    if (
+      !storedOtp ||
+      storedOtp !== inputOtp ||
+      !user.verificationCodeExpiresAt ||
+      new Date() > new Date(user.verificationCodeExpiresAt)
+    ) {
       return res.status(400).json({ message: "Invalid or expired OTP code." });
     }
 
     user.isVerified = true;
-    user.verificationOtp = undefined;
-    user.verificationOtpExpires = undefined;
+    user.verificationCodeHash = null;
+    user.verificationCodeExpiresAt = null;
     await user.save();
 
     return res.status(200).json({ message: "Email verified successfully. You can now log in." });
@@ -117,8 +124,8 @@ exports.resendVerificationOtp = async (req, res) => {
     }
 
     const otp = generateOTP();
-    user.verificationOtp = otp;
-    user.verificationOtpExpires = new Date(Date.now() + 10 * 60 * 1000);
+    user.verificationCodeHash = otp;
+    user.verificationCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
     await sendEmail({
@@ -165,8 +172,8 @@ exports.loginUser = async (req, res) => {
 
     if (!user.isVerified) {
       const otp = generateOTP();
-      user.verificationOtp = otp;
-      user.verificationOtpExpires = new Date(Date.now() + 10 * 60 * 1000);
+      user.verificationCodeHash = otp;
+      user.verificationCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
       await user.save();
 
       await sendEmail({
@@ -214,8 +221,8 @@ exports.requestPasswordReset = async (req, res) => {
     }
 
     const otp = generateOTP();
-    user.resetPasswordOtp = otp;
-    user.resetPasswordOtpExpires = new Date(Date.now() + 10 * 60 * 1000);
+    user.passwordResetOtpHash = otp;
+    user.passwordResetExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
     await sendEmail({
@@ -251,13 +258,21 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Invalid request." });
     }
 
-    if (user.resetPasswordOtp !== otp.trim() || new Date() > user.resetPasswordOtpExpires) {
+    const storedOtp = String(user.passwordResetOtpHash || "").trim();
+    const inputOtp = String(otp || "").trim();
+
+    if (
+      !storedOtp ||
+      storedOtp !== inputOtp ||
+      !user.passwordResetExpiresAt ||
+      new Date() > new Date(user.passwordResetExpiresAt)
+    ) {
       return res.status(400).json({ message: "Invalid or expired OTP." });
     }
 
     user.password = await bcrypt.hash(password, 10);
-    user.resetPasswordOtp = undefined;
-    user.resetPasswordOtpExpires = undefined;
+    user.passwordResetOtpHash = null;
+    user.passwordResetExpiresAt = null;
     await user.save();
 
     return res.status(200).json({ message: "Password reset successful. You can now log in." });
