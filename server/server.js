@@ -38,30 +38,33 @@ const server = http.createServer(app);
 // NODEMAILER TRANSPORTER SETUP
 // =========================================================
 
+const emailUser = process.env.NODE_CODE_SENDING_EMAIL_ADDRESS || process.env.EMAIL_USER;
+const emailPass = process.env.NODE_CODE_SENDING_EMAIL_PASSWORD || process.env.EMAIL_PASS;
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.NODE_CODE_SENDING_EMAIL_ADDRESS,
-    pass: process.env.NODE_CODE_SENDING_EMAIL_PASSWORD, // Uses 16-character App Password
+    user: emailUser,
+    pass: emailPass, // Uses 16-character App Password
   },
-  // Force IPv4 only. Render (and some other hosts) don't route outbound IPv6
-  // to Gmail's SMTP servers, which causes "connect ENETUNREACH" errors when
-  // Nodemailer tries an IPv6 address first. Forcing IPv4 avoids that entirely.
-  family: 4,
-  // Prevent requests from hanging indefinitely if a connection attempt stalls.
-  connectionTimeout: 10000, // 10 seconds
+  family: 4, // Force IPv4 to prevent ENETUNREACH on cloud hosts
+  connectionTimeout: 10000,
   greetingTimeout: 5000,
   socketTimeout: 10000,
 });
 
 // Verify email service configuration on startup
-transporter.verify((error) => {
-  if (error) {
-    console.warn("[Nodemailer] Warning: Email service error ->", error.message);
-  } else {
-    console.log("[Nodemailer] Transporter is ready to dispatch emails");
-  }
-});
+if (!emailUser || !emailPass) {
+  console.warn("[Nodemailer] Warning: Email credentials are not defined in environment variables.");
+} else {
+  transporter.verify((error) => {
+    if (error) {
+      console.warn("[Nodemailer] Warning: Email service error ->", error.message);
+    } else {
+      console.log("[Nodemailer] Transporter is ready to dispatch emails");
+    }
+  });
+}
 
 // Attach transporter to app instance for global route access
 app.set("transporter", transporter);
@@ -88,7 +91,7 @@ if (process.env.FRONTEND_URL) {
 }
 
 const isAllowedOrigin = (origin) => {
-  if (!origin) return true;
+  if (!origin) return true; // Allow non-browser requests (Postman, mobile, curl)
 
   const normalizedOrigin = String(origin).trim().replace(/\/$/, "");
 
@@ -112,7 +115,6 @@ app.use(
       if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
-
       console.warn(`[CORS] Blocked origin: ${origin}`);
       return callback(new Error("Not allowed by CORS"));
     },
@@ -138,7 +140,6 @@ const io = new Server(server, {
       if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
-
       console.warn(`[Socket.IO CORS] Blocked origin: ${origin}`);
       return callback(new Error("Socket.IO CORS blocked"));
     },
@@ -149,6 +150,9 @@ const io = new Server(server, {
 });
 
 app.set("io", io);
+
+// Socket Auth Middleware
+io.use(socketAuth);
 
 // =========================================================
 // API & HEALTH ROUTES
@@ -176,7 +180,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Route for sending email notifications
+// Direct mail delivery route
 app.post("/api/send-email", async (req, res, next) => {
   const { to, subject, message, html } = req.body;
 
@@ -186,7 +190,7 @@ app.post("/api/send-email", async (req, res, next) => {
 
   try {
     const info = await transporter.sendMail({
-      from: `Chat App <${process.env.NODE_CODE_SENDING_EMAIL_ADDRESS}>`,
+      from: `Chat App <${emailUser}>`,
       to,
       subject: subject || "Notification from Multilingual Chat",
       text: message || "",
@@ -199,6 +203,7 @@ app.post("/api/send-email", async (req, res, next) => {
   }
 });
 
+// Mounted Modular Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/rooms", roomRoutes);
@@ -207,8 +212,33 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/friends", friendRoutes);
 app.use("/api/search", searchRoutes);
 
-// Socket Auth Middleware
-io.use(socketAuth);
+// =========================================================
+// 404 & ERROR HANDLING MIDDLEWARE
+// =========================================================
+
+app.use((req, res) => {
+  return res.status(404).json({ message: "API route not found" });
+});
+
+app.use((error, req, res, next) => {
+  console.error("[EXPRESS ERROR]", error);
+
+  if (res.headersSent) {
+    return next(error);
+  }
+
+  if (error?.code === "LIMIT_FILE_SIZE") {
+    return res.status(400).json({ message: "Profile picture must be 5 MB or smaller." });
+  }
+
+  if (error?.name === "MulterError") {
+    return res.status(400).json({ message: error.message || "File upload failed." });
+  }
+
+  return res.status(error.status || 500).json({
+    message: error.message || "Internal server error",
+  });
+});
 
 // =========================================================
 // DATABASE & SERVER LIFECYCLE
@@ -259,38 +289,20 @@ const startServer = async () => {
 startServer();
 
 // =========================================================
-// ERROR HANDLERS & SHUTDOWN
+// GRACEFUL SHUTDOWN
 // =========================================================
-
-app.use((req, res) => {
-  return res.status(404).json({ message: "API route not found" });
-});
-
-app.use((error, req, res, next) => {
-  console.error("[EXPRESS ERROR]", error);
-
-  if (res.headersSent) {
-    return next(error);
-  }
-
-  if (error?.code === "LIMIT_FILE_SIZE") {
-    return res.status(400).json({ message: "Profile picture must be 5 MB or smaller." });
-  }
-
-  if (error?.name === "MulterError") {
-    return res.status(400).json({ message: error.message || "File upload failed." });
-  }
-
-  return res.status(error.status || 500).json({
-    message: error.message || "Internal server error",
-  });
-});
 
 const shutdown = async (signal) => {
   if (isShuttingDown) return;
   isShuttingDown = true;
 
   console.log(`${signal} received. Shutting down...`);
+
+  // Force exit after 5 seconds if connections hang
+  setTimeout(() => {
+    console.error("Forced exit due to lingering connections.");
+    process.exit(1);
+  }, 5000).unref();
 
   try {
     io.close();

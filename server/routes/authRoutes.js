@@ -17,7 +17,6 @@ const authMiddleware = require("../middleware/authMiddleware");
 // =====================================================
 // AUTH & VERIFICATION
 // =====================================================
-
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/verify-email", verifyEmail);
@@ -28,13 +27,11 @@ router.post("/reset-password", resetPassword);
 // =====================================================
 // USERS
 // =====================================================
-
 router.get("/users", getUsers);
 
 // =====================================================
 // LANGUAGE
 // =====================================================
-
 router.put("/language", authMiddleware, updateLanguage);
 
 module.exports = router;

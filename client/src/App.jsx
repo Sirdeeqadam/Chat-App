@@ -8,23 +8,10 @@ import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
 
-// =====================================================
-// PROTECTED ROUTE
-// =====================================================
-
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
+  return user ? children : <Navigate to="/login" replace />;
 };
-
-// =====================================================
-// APP
-// =====================================================
 
 const App = () => {
   return (

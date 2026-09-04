@@ -14,21 +14,13 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // =====================================================
-  // HANDLE INPUT
-  // =====================================================
-
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setFormData((previous) => ({
-      ...previous,
+    setFormData((prev) => ({
+      ...prev,
       [name]: value,
     }));
   };
-
-  // =====================================================
-  // LOGIN
-  // =====================================================
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -37,20 +29,13 @@ const Login = () => {
     const rawInput = formData.email.trim();
     const password = formData.password;
 
-    if (!rawInput) {
-      setError("Please enter your email or username.");
-      return;
-    }
-
-    if (!password) {
-      setError("Please enter your password.");
+    if (!rawInput || !password) {
+      setError("Please fill in both fields.");
       return;
     }
 
     try {
       setLoading(true);
-
-      // Send identifier under all key names to ensure compatibility
       await login({
         identifier: rawInput,
         email: rawInput,
@@ -61,6 +46,13 @@ const Login = () => {
       navigate("/chat", { replace: true });
     } catch (loginError) {
       console.error("Login error:", loginError);
+
+      if (loginError.response?.status === 403 && loginError.response?.data?.unverified) {
+        navigate("/verify-otp", {
+          state: { email: loginError.response.data.email },
+        });
+        return;
+      }
 
       setError(
         loginError.response?.data?.message ||

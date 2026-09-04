@@ -30,7 +30,6 @@ const Register = () => {
       setLoading(true);
       const response = await api.post("/auth/register", formData);
 
-      // Redirect user to OTP verification screen passing email in state
       navigate("/verify-otp", {
         state: {
           email: formData.email.trim(),
