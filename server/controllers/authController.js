@@ -1,7 +1,8 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { sendEmail } = require("../config/nodemailer");
+// FIX: Point to your main sendEmail utility instead of config/nodemailer
+const { sendEmail } = require("../utils/sendEmail");
 
 // Helper: Generate 6-digit numeric OTP
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -39,7 +40,7 @@ exports.registerUser = async (req, res) => {
       verificationOtpExpires: otpExpires,
     });
 
-    sendEmail({
+    await sendEmail({
       to: newUser.email,
       subject: "Verify Your Email - Verification Code",
       html: `<h2>Welcome, ${newUser.username}!</h2><p>Your email verification code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
@@ -120,7 +121,7 @@ exports.resendVerificationOtp = async (req, res) => {
     user.verificationOtpExpires = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    sendEmail({
+    await sendEmail({
       to: user.email,
       subject: "Verify Your Email - New Verification Code",
       html: `<p>Your new verification code is: <strong>${otp}</strong></p>`,
@@ -168,7 +169,7 @@ exports.loginUser = async (req, res) => {
       user.verificationOtpExpires = new Date(Date.now() + 10 * 60 * 1000);
       await user.save();
 
-      sendEmail({
+      await sendEmail({
         to: user.email,
         subject: "Verify Your Email - New Verification Code",
         html: `<p>Your new email verification code is: <strong>${otp}</strong></p>`,
@@ -217,7 +218,7 @@ exports.requestPasswordReset = async (req, res) => {
     user.resetPasswordOtpExpires = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    sendEmail({
+    await sendEmail({
       to: user.email,
       subject: "Password Reset Code",
       html: `<p>Your password reset OTP code is: <strong>${otp}</strong></p><p>Expires in 10 minutes.</p>`,
