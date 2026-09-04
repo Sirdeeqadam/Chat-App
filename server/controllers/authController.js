@@ -285,6 +285,7 @@ exports.loginUser = async (
     const {
       email,
       username,
+      identifier,
       password,
     } = req.body || {};
 
@@ -306,15 +307,16 @@ exports.loginUser = async (
     // LOGIN IDENTIFIER
     // -------------------------------------------------
 
-    const hasEmail =
-      typeof email === "string" &&
-      email.trim();
+    const loginIdentifier =
+      typeof identifier === "string"
+        ? identifier.trim()
+        : typeof email === "string"
+          ? email.trim()
+          : typeof username === "string"
+            ? username.trim()
+            : "";
 
-    const hasUsername =
-      typeof username === "string" &&
-      username.trim();
-
-    if (!hasEmail && !hasUsername) {
+    if (!loginIdentifier) {
       return res.status(400).json({
         message:
           "Email or username is required.",
@@ -340,15 +342,12 @@ exports.loginUser = async (
     // QUERY
     // -------------------------------------------------
 
-    const query = hasEmail
-      ? {
-          email:
-            email.trim().toLowerCase(),
-        }
-      : {
-          username:
-            username.trim(),
-        };
+    const query = {
+      $or: [
+        { email: loginIdentifier.toLowerCase() },
+        { username: loginIdentifier },
+      ],
+    };
 
     // -------------------------------------------------
     // FIND USER

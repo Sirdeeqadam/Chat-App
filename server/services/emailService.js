@@ -3,12 +3,13 @@ const nodemailer = require("nodemailer");
 const hasSmtpConfig = () => {
   return Boolean(
     process.env.SMTP_HOST &&
-      process.env.SMTP_PORT &&
       process.env.SMTP_USER &&
-      process.env.SMTP_PASS &&
-      process.env.SMTP_FROM
+      process.env.SMTP_PASS
   );
 };
+
+const getSmtpFrom = () =>
+  process.env.SMTP_FROM || process.env.SMTP_USER;
 
 const sendPasswordResetEmail = async ({
   recipient,
@@ -21,7 +22,7 @@ const sendPasswordResetEmail = async ({
 
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
+    port: Number(process.env.SMTP_PORT) || 587,
     secure: String(process.env.SMTP_SECURE).toLowerCase() === "true",
     auth: {
       user: process.env.SMTP_USER,
@@ -30,7 +31,7 @@ const sendPasswordResetEmail = async ({
   });
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM,
+    from: getSmtpFrom(),
     to: recipient,
     subject: "Reset your Chat password",
     text: [
@@ -66,7 +67,7 @@ const sendPasswordResetOtp = async ({
 
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
+    port: Number(process.env.SMTP_PORT) || 587,
     secure: String(process.env.SMTP_SECURE).toLowerCase() === "true",
     auth: {
       user: process.env.SMTP_USER,
@@ -75,7 +76,7 @@ const sendPasswordResetOtp = async ({
   });
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM,
+    from: getSmtpFrom(),
     to: recipient,
     subject: "Your Chat password reset code",
     text: `Your Chat password reset code is ${otp}. It expires in ${expiresInMinutes} minutes.`,

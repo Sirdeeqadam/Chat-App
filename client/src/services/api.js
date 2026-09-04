@@ -22,7 +22,9 @@ const rawBaseURL =
 const baseURL =
   String(rawBaseURL)
     .trim()
-    .replace(/\/+$/, "");
+    .replace(/\/+$/, "")
+    .replace(/\/api\/?$/, "") +
+  "/api";
 
 // =====================================================
 // AXIOS INSTANCE

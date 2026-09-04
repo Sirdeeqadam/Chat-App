@@ -67,13 +67,13 @@ const Login = () => {
 
       setError("");
 
-      const email =
+      const identifier =
         formData.email.trim();
 
       const password =
         formData.password;
 
-      if (!email) {
+      if (!identifier) {
         setError(
           "Please enter your email or username."
         );
@@ -98,7 +98,7 @@ const Login = () => {
         // - user storage
         // - updating AuthContext
         await login({
-          email,
+          identifier,
           password,
         });
 

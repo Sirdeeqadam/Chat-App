@@ -1,86 +1,64 @@
 const mongoose = require("mongoose");
 
-// =========================================================
-// READ STATE SCHEMA
-// =========================================================
-//
-// Stores the last point a user has read.
-//
-// Private:
-//
-// user      = current user
-// scopeType = "private"
-// target    = other user's ObjectId
-//
-// Room:
-//
-// user      = current user
-// scopeType = "room"
-// target    = room's ObjectId
-// =========================================================
+const readStateSchema =
+  new mongoose.Schema(
+    {
+      // =====================================================
+      // USER WHOSE READ POSITION THIS REPRESENTS
+      // =====================================================
 
-const readStateSchema = new mongoose.Schema(
-  {
-    // =====================================================
-    // USER
-    // =====================================================
+      user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+        index: true,
+      },
 
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
+      // =====================================================
+      // READ STATE TYPE
+      // =====================================================
+
+      scopeType: {
+        type: String,
+        enum: [
+          "private",
+          "room",
+        ],
+        required: true,
+      },
+
+      // =====================================================
+      // TARGET
+      //
+      // private -> other user's ObjectId
+      // room    -> room's ObjectId
+      // =====================================================
+
+      target: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+      },
+
+      // =====================================================
+      // LAST MESSAGE TIME THE USER HAS READ
+      // =====================================================
+
+      lastReadAt: {
+        type: Date,
+        default: null,
+      },
     },
-
-    // =====================================================
-    // SCOPE TYPE
-    // =====================================================
-
-    scopeType: {
-      type: String,
-      enum: ["private", "room"],
-      required: true,
-      index: true,
-    },
-
-    // =====================================================
-    // TARGET
-    //
-    // private -> User ObjectId
-    // room    -> Room ObjectId
-    // =====================================================
-
-    target: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      index: true,
-    },
-
-    // =====================================================
-    // LAST READ TIME
-    // =====================================================
-
-    lastReadAt: {
-      type: Date,
-      default: null,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
+    {
+      timestamps: true,
+    }
+  );
 
 // =========================================================
-// UNIQUE READ POSITION
-// =========================================================
+// UNIQUE READ STATE
 //
-// One user can have only one read state for:
-//
-// user + private + otherUser
-//
-// OR:
-//
-// user + room + room
+// One user can have only one read position for:
+//   user + private + otherUser
+//   user + room    + room
 // =========================================================
 
 readStateSchema.index(
@@ -95,7 +73,7 @@ readStateSchema.index(
 );
 
 // =========================================================
-// FAST LOOKUP
+// FAST ROOM/PRIVATE LOOKUPS
 // =========================================================
 
 readStateSchema.index({
@@ -103,47 +81,13 @@ readStateSchema.index({
   scopeType: 1,
 });
 
-// =========================================================
-// VALIDATE TARGET
-// =========================================================
-//
-// This verifies that target is a valid ObjectId.
-// It does not verify whether it belongs to User or Room;
-// that depends on scopeType.
-// =========================================================
+readStateSchema.index({
+  target: 1,
+  scopeType: 1,
+});
 
-readStateSchema.pre(
-  "validate",
-  function (next) {
-    if (
-      !mongoose.Types.ObjectId.isValid(
-        this.target
-      )
-    ) {
-      return next(
-        new Error(
-          "Invalid read state target."
-        )
-      );
-    }
-
-    if (!this.scopeType) {
-      return next(
-        new Error(
-          "Read state scopeType is required."
-        )
-      );
-    }
-
-    next();
-  }
-);
-
-// =========================================================
-// MODEL
-// =========================================================
-
-module.exports = mongoose.model(
-  "ReadState",
-  readStateSchema
-);
+module.exports =
+  mongoose.model(
+    "ReadState",
+    readStateSchema
+  );
