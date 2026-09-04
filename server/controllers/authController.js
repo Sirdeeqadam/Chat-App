@@ -11,19 +11,9 @@ const {
 // CONSTANTS
 // =====================================================
 
-const ALLOWED_LANGUAGES = [
-  "English",
-  "Hausa",
-  "French",
-  "Arabic",
-];
-
-const JWT_EXPIRES_IN =
-  process.env.JWT_EXPIRES_IN || "1d";
-
-const USER_SELECT_FIELDS =
-  "_id username email language bio profilePicture createdAt updatedAt";
-
+const ALLOWED_LANGUAGES = ["English", "Hausa", "French", "Arabic"];
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1d";
+const USER_SELECT_FIELDS = "_id username email language bio profilePicture createdAt updatedAt";
 const PASSWORD_RESET_MINUTES = 30;
 
 // =====================================================
@@ -50,10 +40,6 @@ const createSafeUser = (user) => ({
 exports.registerUser = async (req, res) => {
   try {
     const { username, email, password, language } = req.body || {};
-
-    // -------------------------------------------------
-    // VALIDATIONS
-    // -------------------------------------------------
 
     if (typeof username !== "string" || !username.trim()) {
       return res.status(400).json({ message: "Username is required." });
@@ -89,23 +75,17 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({ message: "Unsupported language." });
     }
 
-    // -------------------------------------------------
-    // DUPLICATE CHECKS
-    // -------------------------------------------------
-
     const existingEmailUser = await User.findOne({ email: normalizedEmail });
     if (existingEmailUser) {
       return res.status(409).json({ message: "Email is already registered." });
     }
 
-    const existingUsernameUser = await User.findOne({ username: normalizedUsername });
+    const existingUsernameUser = await User.findOne({
+      username: { $regex: new RegExp(`^${normalizedUsername}$`, "i") },
+    });
     if (existingUsernameUser) {
       return res.status(409).json({ message: "Username is already taken." });
     }
-
-    // -------------------------------------------------
-    // HASH & SAVE
-    // -------------------------------------------------
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -151,7 +131,6 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ message: "Password is required." });
     }
 
-    // Determine login query parameter
     const loginIdentifier = (identifier || email || username || "").trim();
 
     if (!loginIdentifier) {
@@ -163,11 +142,10 @@ exports.loginUser = async (req, res) => {
       return res.status(500).json({ message: "JWT configuration error." });
     }
 
-    // Search by email or username
     const isEmailInput = loginIdentifier.includes("@");
     const query = isEmailInput
       ? { email: loginIdentifier.toLowerCase() }
-      : { username: loginIdentifier };
+      : { username: { $regex: new RegExp(`^${loginIdentifier}$`, "i") } };
 
     const user = await User.findOne(query).select("+password");
 
