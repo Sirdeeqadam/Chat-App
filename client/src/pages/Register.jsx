@@ -9,46 +9,49 @@ const Register = () => {
     username: "",
     email: "",
     password: "",
-    language: "English"
+    language: "English",
   });
 
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     try {
-      await api.post("/auth/register", formData);
+      setLoading(true);
+      const response = await api.post("/auth/register", formData);
 
-      navigate("/login");
-    } catch (error) {
+      // Redirect user to OTP verification screen passing email in state
+      navigate("/verify-otp", {
+        state: {
+          email: formData.email.trim(),
+          devOtp: response.data?.otp || null,
+        },
+      });
+    } catch (err) {
       setError(
-        error.response?.data?.message ||
-        "Registration failed"
+        err.response?.data?.message || "Registration failed. Please try again."
       );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="auth-container">
-      <form
-        className="auth-form"
-        onSubmit={handleSubmit}
-      >
+      <form className="auth-form" onSubmit={handleSubmit}>
         <h1>Create Account</h1>
 
-        {error && (
-          <p className="error">
-            {error}
-          </p>
-        )}
+        {error && <p className="error">{error}</p>}
 
         <input
           type="text"
@@ -57,6 +60,7 @@ const Register = () => {
           value={formData.username}
           onChange={handleChange}
           required
+          disabled={loading}
         />
 
         <input
@@ -66,6 +70,7 @@ const Register = () => {
           value={formData.email}
           onChange={handleChange}
           required
+          disabled={loading}
         />
 
         <input
@@ -75,12 +80,14 @@ const Register = () => {
           value={formData.password}
           onChange={handleChange}
           required
+          disabled={loading}
         />
 
         <select
           name="language"
           value={formData.language}
           onChange={handleChange}
+          disabled={loading}
         >
           <option value="English">English</option>
           <option value="Hausa">Hausa</option>
@@ -88,15 +95,12 @@ const Register = () => {
           <option value="Arabic">Arabic</option>
         </select>
 
-        <button type="submit">
-          Register
+        <button type="submit" disabled={loading}>
+          {loading ? "Registering..." : "Register"}
         </button>
 
         <p>
-          Already have an account?{" "}
-          <Link to="/login">
-            Login
-          </Link>
+          Already have an account? <Link to="/login">Login</Link>
         </p>
       </form>
     </div>

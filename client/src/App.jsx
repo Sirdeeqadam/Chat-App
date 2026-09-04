@@ -1,14 +1,9 @@
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import VerifyOtp from "./pages/VerifyOtp";
 import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -17,18 +12,11 @@ import ForgotPassword from "./pages/ForgotPassword";
 // PROTECTED ROUTE
 // =====================================================
 
-const ProtectedRoute = ({
-  children,
-}) => {
+const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
 
   if (!user) {
-    return (
-      <Navigate
-        to="/login"
-        replace
-      />
-    );
+    return <Navigate to="/login" replace />;
   }
 
   return children;
@@ -42,58 +30,19 @@ const App = () => {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* =============================================
-            DEFAULT
-        ============================================= */}
-
-        <Route
-          path="/"
-          element={
-            <Navigate
-              to="/login"
-              replace
-            />
-          }
-        />
-
-        {/* =============================================
-            LOGIN
-        ============================================= */}
-
-        <Route
-          path="/login"
-          element={<Login />}
-        />
-
-        {/* =============================================
-            REGISTER
-        ============================================= */}
-
-        <Route
-          path="/register"
-          element={<Register />}
-        />
-
-        <Route
-          path="/forgot-password"
-          element={<ForgotPassword />}
-        />
-
+        {/* AUTH ROUTES */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/verify-otp" element={<VerifyOtp />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route
           path="/reset-password"
-          element={
-            <Navigate
-              to="/forgot-password"
-              replace
-            />
-          }
+          element={<Navigate to="/forgot-password" replace />}
         />
 
-        {/* =============================================
-            CHAT
-        ============================================= */}
-
+        {/* PROTECTED ROUTES */}
         <Route
           path="/chat"
           element={
@@ -102,11 +51,6 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-
-        {/* =============================================
-            PROFILE
-        ============================================= */}
-
         <Route
           path="/profile"
           element={
@@ -116,20 +60,8 @@ const App = () => {
           }
         />
 
-        {/* =============================================
-            UNKNOWN ROUTES
-        ============================================= */}
-
-        <Route
-          path="*"
-          element={
-            <Navigate
-              to="/chat"
-              replace
-            />
-          }
-        />
-
+        {/* FALLBACK */}
+        <Route path="*" element={<Navigate to="/chat" replace />} />
       </Routes>
     </BrowserRouter>
   );
