@@ -5,6 +5,7 @@ const http = require("http");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
+const nodemailer = require("nodemailer");
 const { Server } = require("socket.io");
 
 // =========================================================
@@ -34,6 +35,30 @@ const app = express();
 const server = http.createServer(app);
 
 // =========================================================
+// NODEMAILER TRANSPORTER SETUP
+// =========================================================
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.NODE_CODE_SENDING_EMAIL_ADDRESS,
+    pass: process.env.NODE_CODE_SENDING_EMAIL_PASSWORD, // Uses your 16-character App Password
+  },
+});
+
+// Verify email service configuration on startup
+transporter.verify((error) => {
+  if (error) {
+    console.warn("[Nodemailer] Warning: Email service error ->", error.message);
+  } else {
+    console.log("[Nodemailer] Transporter is ready to dispatch emails");
+  }
+});
+
+// Attach transporter to app instance for global route access
+app.set("transporter", transporter);
+
+// =========================================================
 // CONFIGURATION & CORS SETUP
 // =========================================================
 
@@ -55,18 +80,12 @@ if (process.env.FRONTEND_URL) {
 }
 
 const isAllowedOrigin = (origin) => {
-  // Allow non-browser requests (Postman, curl, server-to-server)
-  if (!origin) {
-    return true;
-  }
+  if (!origin) return true;
 
   const normalizedOrigin = String(origin).trim().replace(/\/$/, "");
 
-  if (allowedOrigins.includes(normalizedOrigin)) {
-    return true;
-  }
+  if (allowedOrigins.includes(normalizedOrigin)) return true;
 
-  // Allow dynamically deployed frontend subdomains
   return (
     /\.vercel\.app$/i.test(normalizedOrigin) ||
     /\.onrender\.com$/i.test(normalizedOrigin) ||
@@ -147,6 +166,29 @@ app.get("/api/health", (req, res) => {
     socket: io.engine ? "available" : "unavailable",
     timestamp: new Date().toISOString(),
   });
+});
+
+// Route for sending email notifications
+app.post("/api/send-email", async (req, res, next) => {
+  const { to, subject, message, html } = req.body;
+
+  if (!to || (!message && !html)) {
+    return res.status(400).json({ message: "Recipient 'to' and email body content are required." });
+  }
+
+  try {
+    const info = await transporter.sendMail({
+      from: `Chat App <${process.env.NODE_CODE_SENDING_EMAIL_ADDRESS}>`,
+      to,
+      subject: subject || "Notification from Multilingual Chat",
+      text: message || "",
+      html: html || `<p>${message}</p>`,
+    });
+
+    return res.status(200).json({ success: true, messageId: info.messageId });
+  } catch (error) {
+    return next(error);
+  }
 });
 
 app.use("/api/auth", authRoutes);
