@@ -26,3 +26,6 @@ export const updateFriendRequest = async (requestId, action) => {
   const response = await api.patch(`/friends/requests/${requestId}`, { action });
   return response.data;
 };
+
+// Alias to keep AddFriendsPicker compatibility
+export const respondToFriendRequest = updateFriendRequest;

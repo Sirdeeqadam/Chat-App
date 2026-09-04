@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { getAllUsers, searchFriends, sendFriendRequest } from "../services/friendService";
+import {
+  getAllUsers,
+  searchFriends,
+  sendFriendRequest,
+  respondToFriendRequest,
+} from "../services/friendService";
 
 const AddFriendsPicker = ({ className = "" }) => {
   const [open, setOpen] = useState(false);
@@ -15,13 +20,20 @@ const AddFriendsPicker = ({ className = "" }) => {
     if (!picture) return null;
     const value = String(picture).trim();
     if (!value) return null;
-    if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("data:")) {
+    if (
+      value.startsWith("http://") ||
+      value.startsWith("https://") ||
+      value.startsWith("data:")
+    ) {
       return value;
     }
-    const apiServerUrl = String(import.meta.env.VITE_API_URL || "http://localhost:5000/api")
+    const apiServerUrl = String(
+      import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+    )
       .trim()
       .replace(/\/api\/?$/, "")
       .replace(/\/+$/, "");
+
     if (value.startsWith("/")) {
       return `${apiServerUrl}${value}`;
     }
@@ -84,20 +96,48 @@ const AddFriendsPicker = ({ className = "" }) => {
       setError("");
       await sendFriendRequest(userId);
 
-      setUsers((prevUsers) =>
-        prevUsers.map((user) =>
+      const updateUserStatus = (list) =>
+        list.map((user) =>
           user._id === userId ? { ...user, relationship: "outgoing" } : user
-        )
-      );
+        );
 
-      setFilteredUsers((prevUsers) =>
-        prevUsers.map((user) =>
-          user._id === userId ? { ...user, relationship: "outgoing" } : user
-        )
-      );
+      setUsers(updateUserStatus);
+      setFilteredUsers(updateUserStatus);
     } catch (err) {
       console.error("Failed to send friend request:", err);
-      setError(err.response?.data?.message || "Failed to send friend request.");
+      setError(
+        err.response?.data?.message || "Failed to send friend request."
+      );
+    } finally {
+      setRequestingUserId(null);
+    }
+  };
+
+  const handleRespondRequest = async (user, action) => {
+    if (!user.friendshipId || requestingUserId === user._id) return;
+
+    try {
+      setRequestingUserId(user._id);
+      setError("");
+      await respondToFriendRequest(user.friendshipId, action);
+
+      const updateUserStatus = (list) =>
+        list.map((item) => {
+          if (item._id === user._id) {
+            return {
+              ...item,
+              relationship: action === "accept" ? "friends" : "none",
+              friendshipId: action === "accept" ? item.friendshipId : null,
+            };
+          }
+          return item;
+        });
+
+      setUsers(updateUserStatus);
+      setFilteredUsers(updateUserStatus);
+    } catch (err) {
+      console.error("Failed to update request:", err);
+      setError(err.response?.data?.message || "Failed to respond to request.");
     } finally {
       setRequestingUserId(null);
     }
@@ -110,7 +150,42 @@ const AddFriendsPicker = ({ className = "" }) => {
       case "outgoing":
         return <span className="request-pending">Pending</span>;
       case "incoming":
-        return <span className="request-pending">Incoming</span>;
+        return (
+          <div className="request-action-group" style={{ display: "flex", gap: "6px" }}>
+            <button
+              type="button"
+              className="accept-friend-btn"
+              onClick={() => handleRespondRequest(user, "accept")}
+              disabled={requestingUserId === user._id}
+              style={{
+                backgroundColor: "#22c55e",
+                color: "#fff",
+                border: "none",
+                borderRadius: "6px",
+                padding: "4px 10px",
+                cursor: "pointer",
+              }}
+            >
+              {requestingUserId === user._id ? "..." : "Accept"}
+            </button>
+            <button
+              type="button"
+              className="decline-friend-btn"
+              onClick={() => handleRespondRequest(user, "decline")}
+              disabled={requestingUserId === user._id}
+              style={{
+                backgroundColor: "#ef4444",
+                color: "#fff",
+                border: "none",
+                borderRadius: "6px",
+                padding: "4px 10px",
+                cursor: "pointer",
+              }}
+            >
+              Decline
+            </button>
+          </div>
+        );
       default:
         return (
           <button
@@ -150,13 +225,17 @@ const AddFriendsPicker = ({ className = "" }) => {
         aria-label="Add friends"
         aria-expanded={open}
       >
-        <svg viewBox="0 0 24 24" role="img" aria-hidden="true" focusable="false" className="add-friends-icon">
-          {/* Modern 2026 style icon - Person with plus circle */}
-          <circle cx="12" cy="9" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-          <path d="M4.5 20c0-2.5 3.2-4 7.5-4s7.5 1.5 7.5 4" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-          {/* Plus circle - modern style */}
-          <circle cx="17" cy="17" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-          <path d="M17 15v4M15 17h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <svg
+          viewBox="0 0 24 24"
+          role="img"
+          aria-hidden="true"
+          focusable="false"
+          className="add-friends-icon"
+        >
+          <circle cx="12" cy="9" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M4.5 20c0-2.5 3.2-4 7.5-4s7.5 1.5 7.5 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <circle cx="17" cy="17" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M17 15v4M15 17h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </button>
 
@@ -206,7 +285,9 @@ const AddFriendsPicker = ({ className = "" }) => {
               <div className="add-friends-loading">Loading users...</div>
             ) : filteredUsers.length === 0 ? (
               <div className="add-friends-empty">
-                {searchQuery ? "No users found matching your search." : "No users available."}
+                {searchQuery
+                  ? "No users found matching your search."
+                  : "No users available."}
               </div>
             ) : (
               filteredUsers.map((user) => (
@@ -224,14 +305,14 @@ const AddFriendsPicker = ({ className = "" }) => {
                       </span>
                     )}
                     <div className="user-info">
-                      <div className="username">{user.username || user.email}</div>
+                      <div className="username">
+                        {user.username || user.email}
+                      </div>
                       {user.bio && <div className="user-bio">{user.bio}</div>}
                     </div>
                   </div>
 
-                  <div className="user-action">
-                    {getButtonContent(user)}
-                  </div>
+                  <div className="user-action">{getButtonContent(user)}</div>
                 </div>
               ))
             )}
