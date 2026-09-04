@@ -43,6 +43,51 @@ exports.registerUser = async (req, res, next) => {
     });
 
     if (existingUser) {
+      // If the existing account is unverified, don't hard-block the user —
+      // they likely hit this because a previous attempt appeared to fail.
+      // Refresh their OTP and re-send instead of leaving them stuck.
+      if (existingUser.email === normalizedEmail && !existingUser.isVerified) {
+        const otp = generateOtp();
+        existingUser.verificationCodeHash = hashToken(otp);
+        existingUser.verificationCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+        await existingUser.save();
+
+        // Respond immediately — do not make the client wait on Gmail's SMTP round-trip.
+        // Waiting here is what caused "Server unreachable or timed out" on the frontend
+        // even though the account update itself succeeded.
+        res.status(200).json({
+          success: true,
+          message: "This account is already registered but not verified. A new verification code has been sent to your email.",
+          user: {
+            id: existingUser._id,
+            username: existingUser.username,
+            email: existingUser.email,
+            isVerified: existingUser.isVerified,
+            language: existingUser.language,
+          },
+        });
+
+        const transporter = req.app.get("transporter");
+        if (transporter) {
+          transporter
+            .sendMail({
+              from: `Chat App <${process.env.NODE_CODE_SENDING_EMAIL_ADDRESS}>`,
+              to: existingUser.email,
+              subject: "Verify Your Email - Multilingual Chat",
+              html: `<p>Welcome back, <strong>${existingUser.username}</strong>!</p>
+                     <p>Your email verification code is: <b style="font-size: 18px;">${otp}</b></p>
+                     <p>This code will expire in 15 minutes.</p>`,
+            })
+            .catch((mailError) => {
+              console.error("[Email][register-existing-unverified] Background send failed:", mailError.message);
+            });
+        } else {
+          console.warn("[Email][register-existing-unverified] Transporter not available on app instance.");
+        }
+
+        return;
+      }
+
       if (existingUser.email === normalizedEmail) {
         return res.status(400).json({ message: "An account with this email already exists." });
       }
@@ -68,20 +113,10 @@ exports.registerUser = async (req, res, next) => {
       verificationCodeExpiresAt: otpExpiresAt,
     });
 
-    // Send Verification Email
-    const transporter = req.app.get("transporter");
-    if (transporter) {
-      await transporter.sendMail({
-        from: `Chat App <${process.env.NODE_CODE_SENDING_EMAIL_ADDRESS}>`,
-        to: newUser.email,
-        subject: "Verify Your Email - Multilingual Chat",
-        html: `<p>Welcome, <strong>${newUser.username}</strong>!</p>
-               <p>Your email verification code is: <b style="font-size: 18px;">${otp}</b></p>
-               <p>This code will expire in 15 minutes.</p>`,
-      });
-    }
-
-    return res.status(201).json({
+    // Respond to the frontend IMMEDIATELY — don't make the client wait on Gmail's
+    // SMTP round-trip. This is what was causing "Server unreachable or timed out"
+    // even though the user account had already been created successfully.
+    res.status(201).json({
       success: true,
       message: "Registration successful. Please check your email for verification code.",
       user: {
@@ -92,6 +127,27 @@ exports.registerUser = async (req, res, next) => {
         language: newUser.language,
       },
     });
+
+    // Send Verification Email in the background, after the response has gone out.
+    // Any failure here is only logged — the user already has their account and
+    // can always use "Resend Code" to get a fresh OTP.
+    const transporter = req.app.get("transporter");
+    if (transporter) {
+      transporter
+        .sendMail({
+          from: `Chat App <${process.env.NODE_CODE_SENDING_EMAIL_ADDRESS}>`,
+          to: newUser.email,
+          subject: "Verify Your Email - Multilingual Chat",
+          html: `<p>Welcome, <strong>${newUser.username}</strong>!</p>
+                 <p>Your email verification code is: <b style="font-size: 18px;">${otp}</b></p>
+                 <p>This code will expire in 15 minutes.</p>`,
+        })
+        .catch((mailError) => {
+          console.error("[Email][register] Background send failed:", mailError.message);
+        });
+    } else {
+      console.warn("[Email][register] Transporter not available on app instance.");
+    }
   } catch (error) {
     return next(error);
   }
@@ -191,21 +247,28 @@ exports.resendVerificationOtp = async (req, res, next) => {
     user.verificationCodeExpiresAt = expiresAt;
     await user.save();
 
-    const transporter = req.app.get("transporter");
-    if (transporter) {
-      await transporter.sendMail({
-        from: `Chat App <${process.env.NODE_CODE_SENDING_EMAIL_ADDRESS}>`,
-        to: user.email,
-        subject: "Your Email Verification Code",
-        html: `<p>Your new verification code is: <b style="font-size: 18px;">${otp}</b></p>
-               <p>This code will expire in 15 minutes.</p>`,
-      });
-    }
-
-    return res.status(200).json({
+    // Respond immediately — don't make the client wait on Gmail's SMTP round-trip.
+    res.status(200).json({
       success: true,
       message: "A new verification code has been sent to your email.",
     });
+
+    const transporter = req.app.get("transporter");
+    if (transporter) {
+      transporter
+        .sendMail({
+          from: `Chat App <${process.env.NODE_CODE_SENDING_EMAIL_ADDRESS}>`,
+          to: user.email,
+          subject: "Your Email Verification Code",
+          html: `<p>Your new verification code is: <b style="font-size: 18px;">${otp}</b></p>
+                 <p>This code will expire in 15 minutes.</p>`,
+        })
+        .catch((mailError) => {
+          console.error("[Email][resend-otp] Background send failed:", mailError.message);
+        });
+    } else {
+      console.warn("[Email][resend-otp] Transporter not available on app instance.");
+    }
   } catch (error) {
     return next(error);
   }
@@ -293,21 +356,28 @@ exports.requestPasswordReset = async (req, res, next) => {
     user.passwordResetExpiresAt = expiresAt;
     await user.save();
 
-    const transporter = req.app.get("transporter");
-    if (transporter) {
-      await transporter.sendMail({
-        from: `Chat App <${process.env.NODE_CODE_SENDING_EMAIL_ADDRESS}>`,
-        to: user.email,
-        subject: "Password Reset Request",
-        html: `<p>Your password reset code is: <b style="font-size: 18px;">${otp}</b></p>
-               <p>This code will expire in 15 minutes.</p>`,
-      });
-    }
-
-    return res.status(200).json({
+    // Respond immediately — don't make the client wait on Gmail's SMTP round-trip.
+    res.status(200).json({
       success: true,
       message: "If an account exists with that email, a password reset code has been sent.",
     });
+
+    const transporter = req.app.get("transporter");
+    if (transporter) {
+      transporter
+        .sendMail({
+          from: `Chat App <${process.env.NODE_CODE_SENDING_EMAIL_ADDRESS}>`,
+          to: user.email,
+          subject: "Password Reset Request",
+          html: `<p>Your password reset code is: <b style="font-size: 18px;">${otp}</b></p>
+                 <p>This code will expire in 15 minutes.</p>`,
+        })
+        .catch((mailError) => {
+          console.error("[Email][forgot-password] Background send failed:", mailError.message);
+        });
+    } else {
+      console.warn("[Email][forgot-password] Transporter not available on app instance.");
+    }
   } catch (error) {
     return next(error);
   }
