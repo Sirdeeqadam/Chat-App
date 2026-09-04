@@ -44,6 +44,14 @@ const transporter = nodemailer.createTransport({
     user: process.env.NODE_CODE_SENDING_EMAIL_ADDRESS,
     pass: process.env.NODE_CODE_SENDING_EMAIL_PASSWORD, // Uses 16-character App Password
   },
+  // Force IPv4 only. Render (and some other hosts) don't route outbound IPv6
+  // to Gmail's SMTP servers, which causes "connect ENETUNREACH" errors when
+  // Nodemailer tries an IPv6 address first. Forcing IPv4 avoids that entirely.
+  family: 4,
+  // Prevent requests from hanging indefinitely if a connection attempt stalls.
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 5000,
+  socketTimeout: 10000,
 });
 
 // Verify email service configuration on startup
