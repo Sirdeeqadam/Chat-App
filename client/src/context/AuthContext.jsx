@@ -178,75 +178,108 @@ export const AuthProvider = ({
     persistUser,
   ]);
 
-  // ===================================================
-  // LOGIN
-  // ===================================================
+ 
+ // ===================================================
+// LOGIN
+// ===================================================
 
-  const login =
-    useCallback(
-      async (credentials) => {
-        const response =
-          await api.post(
-            "/auth/login",
-            credentials
-          );
+const login =
+  useCallback(
+    async (credentials) => {
+      const identifier =
+        credentials?.identifier?.trim();
 
-        const data =
-          response.data;
+      const password =
+        credentials?.password;
 
-        if (!data?.token) {
-          throw new Error(
-            "Login response did not contain a token."
-          );
-        }
+      if (!identifier) {
+        throw new Error(
+          "Email or username is required."
+        );
+      }
 
-        if (!data?.user) {
-          throw new Error(
-            "Login response did not contain user information."
-          );
-        }
+      if (!password) {
+        throw new Error(
+          "Password is required."
+        );
+      }
 
-        const loggedInUser = {
-          ...data.user,
+      // Determine whether the user entered
+      // an email address or a username.
+      const isEmail =
+        identifier.includes("@");
 
-          // Keep fields present even if
-          // older login responses omit them.
-          bio:
-            data.user.bio ||
-            "",
+      const loginPayload =
+        isEmail
+          ? {
+              email: identifier,
+              password,
+            }
+          : {
+              username: identifier,
+              password,
+            };
 
-          profilePicture:
-            data.user.profilePicture ||
-            null,
-
-          language:
-            data.user.language ||
-            "English",
-        };
-
-        localStorage.setItem(
-          "token",
-          data.token
+      const response =
+        await api.post(
+          "/auth/login",
+          loginPayload
         );
 
-        persistUser(
-          loggedInUser
-        );
+      const data =
+        response.data;
 
-        setUser(
-          loggedInUser
+      if (!data?.token) {
+        throw new Error(
+          "Login response did not contain a token."
         );
+      }
 
-        return {
-          ...data,
-          user:
-            loggedInUser,
-        };
-      },
-      [
-        persistUser,
-      ]
-    );
+      if (!data?.user) {
+        throw new Error(
+          "Login response did not contain user information."
+        );
+      }
+
+      const loggedInUser = {
+        ...data.user,
+
+        bio:
+          data.user.bio ||
+          "",
+
+        profilePicture:
+          data.user.profilePicture ||
+          null,
+
+        language:
+          data.user.language ||
+          "English",
+      };
+
+      localStorage.setItem(
+        "token",
+        data.token
+      );
+
+      persistUser(
+        loggedInUser
+      );
+
+      setUser(
+        loggedInUser
+      );
+
+      return {
+        ...data,
+        user:
+          loggedInUser,
+      };
+    },
+    [
+      persistUser,
+    ]
+  );
 
   // ===================================================
   // UPDATE USER
