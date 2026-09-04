@@ -17,8 +17,11 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({ message: "All required fields must be provided." });
     }
 
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanUsername = username.trim();
+
     const existingUser = await User.findOne({
-      $or: [{ email: email.toLowerCase().trim() }, { username: username.trim() }],
+      $or: [{ email: cleanEmail }, { username: cleanUsername }],
     });
 
     if (existingUser) {
@@ -29,22 +32,30 @@ exports.registerUser = async (req, res) => {
     const otp = generateOTP();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
+    // Create user matching your exact MongoDB schema fields
     const newUser = await User.create({
-      username: username.trim(),
-      email: email.toLowerCase().trim(),
+      username: cleanUsername,
+      email: cleanEmail,
       password: hashedPassword,
       language: language || "English",
       isVerified: false,
       verificationCodeHash: otp,
       verificationCodeExpiresAt: otpExpires,
+      profilePicture: null,
+      bio: "",
     });
 
-    await sendEmail({
-      to: newUser.email,
-      subject: "Verify Your Email - Verification Code",
-      html: `<h2>Welcome, ${newUser.username}!</h2><p>Your email verification code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
-      text: `Your email verification code is: ${otp}`,
-    });
+    // Send email safely (catches email failure without breaking user creation)
+    try {
+      await sendEmail({
+        to: newUser.email,
+        subject: "Verify Your Email - Verification Code",
+        html: `<h2>Welcome, ${newUser.username}!</h2><p>Your email verification code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+        text: `Your email verification code is: ${otp}`,
+      });
+    } catch (emailErr) {
+      console.error("[REGISTER EMAIL SEND ERROR]", emailErr);
+    }
 
     return res.status(201).json({
       message: "Registration successful. Please verify your email with the OTP sent.",
@@ -53,7 +64,7 @@ exports.registerUser = async (req, res) => {
     });
   } catch (error) {
     console.error("[REGISTER ERROR]", error);
-    return res.status(500).json({ message: "Internal server error during registration." });
+    return res.status(500).json({ message: "Internal server error during registration.", error: error.message });
   }
 };
 
@@ -128,12 +139,16 @@ exports.resendVerificationOtp = async (req, res) => {
     user.verificationCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    await sendEmail({
-      to: user.email,
-      subject: "Verify Your Email - New Verification Code",
-      html: `<p>Your new verification code is: <strong>${otp}</strong></p>`,
-      text: `Your new verification code is: ${otp}`,
-    });
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: "Verify Your Email - New Verification Code",
+        html: `<p>Your new verification code is: <strong>${otp}</strong></p>`,
+        text: `Your new verification code is: ${otp}`,
+      });
+    } catch (emailErr) {
+      console.error("[RESEND EMAIL ERROR]", emailErr);
+    }
 
     return res.status(200).json({
       message: "A new OTP code has been sent to your email.",
@@ -170,18 +185,23 @@ exports.loginUser = async (req, res) => {
       return res.status(401).json({ message: "Invalid email/username or password." });
     }
 
+    // Handle unverified user login attempt
     if (!user.isVerified) {
       const otp = generateOTP();
       user.verificationCodeHash = otp;
       user.verificationCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
       await user.save();
 
-      await sendEmail({
-        to: user.email,
-        subject: "Verify Your Email - New Verification Code",
-        html: `<p>Your new email verification code is: <strong>${otp}</strong></p>`,
-        text: `Your new email verification code is: ${otp}`,
-      });
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: "Verify Your Email - New Verification Code",
+          html: `<p>Your new email verification code is: <strong>${otp}</strong></p>`,
+          text: `Your new email verification code is: ${otp}`,
+        });
+      } catch (emailErr) {
+        console.error("[LOGIN EMAIL ERROR]", emailErr);
+      }
 
       return res.status(403).json({
         message: "Email is not verified. A new OTP has been sent to your email.",
@@ -201,7 +221,7 @@ exports.loginUser = async (req, res) => {
     });
   } catch (error) {
     console.error("[LOGIN ERROR]", error);
-    return res.status(500).json({ message: "Internal server error during login." });
+    return res.status(500).json({ message: "Internal server error during login.", error: error.message });
   }
 };
 
@@ -225,12 +245,16 @@ exports.requestPasswordReset = async (req, res) => {
     user.passwordResetExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    await sendEmail({
-      to: user.email,
-      subject: "Password Reset Code",
-      html: `<p>Your password reset OTP code is: <strong>${otp}</strong></p><p>Expires in 10 minutes.</p>`,
-      text: `Your password reset OTP code is: ${otp}`,
-    });
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: "Password Reset Code",
+        html: `<p>Your password reset OTP code is: <strong>${otp}</strong></p><p>Expires in 10 minutes.</p>`,
+        text: `Your password reset OTP code is: ${otp}`,
+      });
+    } catch (emailErr) {
+      console.error("[FORGOT PASSWORD EMAIL ERROR]", emailErr);
+    }
 
     return res.status(200).json({
       message: "Check your email for the password reset OTP.",
