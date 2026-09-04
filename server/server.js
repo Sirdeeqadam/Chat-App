@@ -1,12 +1,12 @@
-require("dotenv").config();
+require("dotenv").config(); // MUST BE AT THE VERY TOP
 
 const express = require("express");
 const http = require("http");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
-const nodemailer = require("nodemailer");
 const { Server } = require("socket.io");
+const { transporter } = require("./utils/sendEmail"); // Extracted email utility
 
 // =========================================================
 // ROUTES
@@ -34,39 +34,7 @@ const socketAuth = require("./middleware/socketAuth");
 const app = express();
 const server = http.createServer(app);
 
-// =========================================================
-// NODEMAILER TRANSPORTER SETUP
-// =========================================================
-
-const emailUser = process.env.NODE_CODE_SENDING_EMAIL_ADDRESS || process.env.EMAIL_USER;
-const emailPass = process.env.NODE_CODE_SENDING_EMAIL_PASSWORD || process.env.EMAIL_PASS;
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: emailUser,
-    pass: emailPass, // Uses 16-character App Password
-  },
-  family: 4, // Force IPv4 to prevent ENETUNREACH on cloud hosts
-  connectionTimeout: 10000,
-  greetingTimeout: 5000,
-  socketTimeout: 10000,
-});
-
-// Verify email service configuration on startup
-if (!emailUser || !emailPass) {
-  console.warn("[Nodemailer] Warning: Email credentials are not defined in environment variables.");
-} else {
-  transporter.verify((error) => {
-    if (error) {
-      console.warn("[Nodemailer] Warning: Email service error ->", error.message);
-    } else {
-      console.log("[Nodemailer] Transporter is ready to dispatch emails");
-    }
-  });
-}
-
-// Attach transporter to app instance for global route access
+// Attach transporter to Express app instance for global route access
 app.set("transporter", transporter);
 
 // =========================================================
@@ -189,6 +157,7 @@ app.post("/api/send-email", async (req, res, next) => {
   }
 
   try {
+    const emailUser = process.env.NODE_CODE_SENDING_EMAIL_ADDRESS || process.env.EMAIL_USER;
     const info = await transporter.sendMail({
       from: `Chat App <${emailUser}>`,
       to,
@@ -298,7 +267,6 @@ const shutdown = async (signal) => {
 
   console.log(`${signal} received. Shutting down...`);
 
-  // Force exit after 5 seconds if connections hang
   setTimeout(() => {
     console.error("Forced exit due to lingering connections.");
     process.exit(1);
