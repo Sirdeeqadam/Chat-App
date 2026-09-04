@@ -11,6 +11,27 @@ const hasSmtpConfig = () => {
 const getSmtpFrom = () =>
   process.env.SMTP_FROM || process.env.SMTP_USER;
 
+const createTransporter = () => {
+  const port = Number(process.env.SMTP_PORT) || 465;
+  const isPort465 = port === 465;
+
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: port,
+    secure: process.env.SMTP_SECURE !== undefined
+      ? String(process.env.SMTP_SECURE).toLowerCase() === "true"
+      : isPort465,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+    // Prevent Render from hanging indefinitely on blocked ports
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 5000,
+    socketTimeout: 10000,
+  });
+};
+
 const sendPasswordResetEmail = async ({
   recipient,
   resetUrl,
@@ -20,15 +41,7 @@ const sendPasswordResetEmail = async ({
     return false;
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: String(process.env.SMTP_SECURE).toLowerCase() === "true",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
+  const transporter = createTransporter();
 
   await transporter.sendMail({
     from: getSmtpFrom(),
@@ -65,15 +78,7 @@ const sendPasswordResetOtp = async ({
     return false;
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: String(process.env.SMTP_SECURE).toLowerCase() === "true",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
+  const transporter = createTransporter();
 
   await transporter.sendMail({
     from: getSmtpFrom(),

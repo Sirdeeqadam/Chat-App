@@ -363,7 +363,7 @@ exports.updateLanguage = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       userId,
       { $set: { language } },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     ).select(USER_SELECT_FIELDS);
 
     if (!user) {
