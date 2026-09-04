@@ -16,15 +16,18 @@ const createTransporter = () => {
   const isPort465 = port === 465;
 
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
     port: port,
-    secure: process.env.SMTP_SECURE !== undefined
-      ? String(process.env.SMTP_SECURE).toLowerCase() === "true"
-      : isPort465,
+    secure:
+      process.env.SMTP_SECURE !== undefined
+        ? String(process.env.SMTP_SECURE).toLowerCase() === "true"
+        : isPort465,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    // Force Nodemailer to resolve IPv4 addresses only
+    family: 4,
     // Prevent Render from hanging indefinitely on blocked ports
     connectionTimeout: 10000, // 10 seconds
     greetingTimeout: 5000,
