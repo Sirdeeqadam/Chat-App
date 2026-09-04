@@ -33,6 +33,28 @@ const userSchema = new mongoose.Schema(
     },
 
     // =====================================================
+    // EMAIL VERIFICATION
+    // =====================================================
+
+    isVerified: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    verificationCodeHash: {
+      type: String,
+      default: null,
+      select: false,
+    },
+
+    verificationCodeExpiresAt: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+
+    // =====================================================
     // PASSWORD
     // =====================================================
     //
