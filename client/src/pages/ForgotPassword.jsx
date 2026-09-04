@@ -32,10 +32,16 @@ const ForgotPassword = () => {
       setDevOtp(response.data?.otp || "");
       setStep("reset");
     } catch (requestError) {
-      setError(
-        requestError.response?.data?.message ||
-          "Unable to request a password reset."
-      );
+      console.error("[FORGOT PASSWORD REQUEST ERROR]", requestError.response || requestError);
+
+      if (!requestError.response) {
+        setError("Network Error: Unable to reach the backend server. Please verify your API URL.");
+      } else {
+        setError(
+          requestError.response?.data?.message ||
+            `Server error (${requestError.response.status}): Unable to request a password reset.`
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -74,10 +80,16 @@ const ForgotPassword = () => {
       setOtp("");
       setDevOtp("");
     } catch (resetError) {
-      setError(
-        resetError.response?.data?.message ||
-          "Unable to reset your password."
-      );
+      console.error("[RESET PASSWORD ERROR]", resetError.response || resetError);
+
+      if (!resetError.response) {
+        setError("Network Error: Unable to reach the backend server.");
+      } else {
+        setError(
+          resetError.response?.data?.message ||
+            `Server error (${resetError.response.status}): Unable to reset your password.`
+        );
+      }
     } finally {
       setLoading(false);
     }

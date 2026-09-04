@@ -5,7 +5,7 @@ import axios from "axios";
 // =====================================================
 
 const rawBaseURL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  import.meta.env.VITE_API_URL || "https://chat-app-k29o.onrender.com/api";
 
 const baseURL =
   String(rawBaseURL)
