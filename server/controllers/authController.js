@@ -21,10 +21,6 @@ const ALLOWED_LANGUAGES = [
 const JWT_EXPIRES_IN =
   process.env.JWT_EXPIRES_IN || "1d";
 
-// =====================================================
-// SAFE USER FIELDS
-// =====================================================
-
 const USER_SELECT_FIELDS =
   "_id username email language bio profilePicture createdAt updatedAt";
 
@@ -36,31 +32,14 @@ const PASSWORD_RESET_MINUTES = 30;
 
 const createSafeUser = (user) => ({
   _id: user?._id,
-
-  id: user?._id
-    ? String(user._id)
-    : user?.id,
-
-  username:
-    user?.username || "",
-
-  email:
-    user?.email || "",
-
-  language:
-    user?.language || "English",
-
-  bio:
-    user?.bio || "",
-
-  profilePicture:
-    user?.profilePicture || null,
-
-  createdAt:
-    user?.createdAt,
-
-  updatedAt:
-    user?.updatedAt,
+  id: user?._id ? String(user._id) : user?.id,
+  username: user?.username || "",
+  email: user?.email || "",
+  language: user?.language || "English",
+  bio: user?.bio || "",
+  profilePicture: user?.profilePicture || null,
+  createdAt: user?.createdAt,
+  updatedAt: user?.updatedAt,
 });
 
 // =====================================================
@@ -68,207 +47,94 @@ const createSafeUser = (user) => ({
 // POST /api/auth/register
 // =====================================================
 
-exports.registerUser = async (
-  req,
-  res
-) => {
+exports.registerUser = async (req, res) => {
   try {
-    const {
-      username,
-      email,
-      password,
-      language,
-    } = req.body || {};
+    const { username, email, password, language } = req.body || {};
 
     // -------------------------------------------------
-    // USERNAME
+    // VALIDATIONS
     // -------------------------------------------------
 
-    if (
-      typeof username !== "string" ||
-      !username.trim()
-    ) {
-      return res.status(400).json({
-        message:
-          "Username is required.",
-      });
+    if (typeof username !== "string" || !username.trim()) {
+      return res.status(400).json({ message: "Username is required." });
     }
 
-    const normalizedUsername =
-      username.trim();
+    const normalizedUsername = username.trim();
 
-    if (
-      normalizedUsername.length < 3
-    ) {
-      return res.status(400).json({
-        message:
-          "Username must be at least 3 characters.",
-      });
+    if (normalizedUsername.length < 3) {
+      return res.status(400).json({ message: "Username must be at least 3 characters." });
     }
 
-    if (
-      normalizedUsername.length > 30
-    ) {
-      return res.status(400).json({
-        message:
-          "Username cannot exceed 30 characters.",
-      });
+    if (normalizedUsername.length > 30) {
+      return res.status(400).json({ message: "Username cannot exceed 30 characters." });
     }
 
-    // -------------------------------------------------
-    // EMAIL
-    // -------------------------------------------------
-
-    if (
-      typeof email !== "string" ||
-      !email.trim()
-    ) {
-      return res.status(400).json({
-        message:
-          "Email is required.",
-      });
+    if (typeof email !== "string" || !email.trim()) {
+      return res.status(400).json({ message: "Email is required." });
     }
 
-    const normalizedEmail =
-      email.trim().toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
 
-    // -------------------------------------------------
-    // PASSWORD
-    // -------------------------------------------------
-
-    if (
-      typeof password !== "string" ||
-      !password.trim()
-    ) {
-      return res.status(400).json({
-        message:
-          "Password is required.",
-      });
+    if (typeof password !== "string" || !password.trim()) {
+      return res.status(400).json({ message: "Password is required." });
     }
 
     if (password.length < 6) {
-      return res.status(400).json({
-        message:
-          "Password must be at least 6 characters.",
-      });
+      return res.status(400).json({ message: "Password must be at least 6 characters." });
+    }
+
+    const selectedLanguage = language || "English";
+
+    if (!ALLOWED_LANGUAGES.includes(selectedLanguage)) {
+      return res.status(400).json({ message: "Unsupported language." });
     }
 
     // -------------------------------------------------
-    // LANGUAGE
+    // DUPLICATE CHECKS
     // -------------------------------------------------
 
-    const selectedLanguage =
-      language || "English";
-
-    if (
-      !ALLOWED_LANGUAGES.includes(
-        selectedLanguage
-      )
-    ) {
-      return res.status(400).json({
-        message:
-          "Unsupported language.",
-      });
-    }
-
-    // -------------------------------------------------
-    // CHECK EMAIL
-    // -------------------------------------------------
-
-    const existingEmailUser =
-      await User.findOne({
-        email: normalizedEmail,
-      });
-
+    const existingEmailUser = await User.findOne({ email: normalizedEmail });
     if (existingEmailUser) {
-      return res.status(409).json({
-        message:
-          "Email is already registered.",
-      });
+      return res.status(409).json({ message: "Email is already registered." });
     }
 
-    // -------------------------------------------------
-    // CHECK USERNAME
-    // -------------------------------------------------
-
-    const existingUsernameUser =
-      await User.findOne({
-        username: normalizedUsername,
-      });
-
+    const existingUsernameUser = await User.findOne({ username: normalizedUsername });
     if (existingUsernameUser) {
-      return res.status(409).json({
-        message:
-          "Username is already taken.",
-      });
+      return res.status(409).json({ message: "Username is already taken." });
     }
 
     // -------------------------------------------------
-    // HASH PASSWORD
+    // HASH & SAVE
     // -------------------------------------------------
 
-    const hashedPassword =
-      await bcrypt.hash(
-        password,
-        10
-      );
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // -------------------------------------------------
-    // CREATE USER
-    // -------------------------------------------------
-
-    const newUser =
-      new User({
-        username:
-          normalizedUsername,
-
-        email:
-          normalizedEmail,
-
-        password:
-          hashedPassword,
-
-        language:
-          selectedLanguage,
-
-        bio: "",
-
-        profilePicture: null,
-      });
+    const newUser = new User({
+      username: normalizedUsername,
+      email: normalizedEmail,
+      password: hashedPassword,
+      language: selectedLanguage,
+      bio: "",
+      profilePicture: null,
+    });
 
     await newUser.save();
 
-    return res.status(201).json({
-      message:
-        "User registered successfully.",
-    });
+    return res.status(201).json({ message: "User registered successfully." });
   } catch (error) {
-    console.error(
-      "Registration error:",
-      error
-    );
+    console.error("Registration error:", error);
 
-    if (
-      error?.code === 11000
-    ) {
-      const duplicateField =
-        Object.keys(
-          error.keyPattern || {}
-        )[0];
-
+    if (error?.code === 11000) {
+      const duplicateField = Object.keys(error.keyPattern || {})[0];
       return res.status(409).json({
         message:
-          duplicateField ===
-          "username"
+          duplicateField === "username"
             ? "Username is already taken."
             : "Email is already registered.",
       });
     }
 
-    return res.status(500).json({
-      message:
-        "Server error during registration.",
-    });
+    return res.status(500).json({ message: "Server error during registration." });
   }
 };
 
@@ -277,174 +143,65 @@ exports.registerUser = async (
 // POST /api/auth/login
 // =====================================================
 
-exports.loginUser = async (
-  req,
-  res
-) => {
+exports.loginUser = async (req, res) => {
   try {
-    const {
-      email,
-      username,
-      identifier,
-      password,
-    } = req.body || {};
+    const { email, username, identifier, password } = req.body || {};
 
-    // -------------------------------------------------
-    // PASSWORD
-    // -------------------------------------------------
-
-    if (
-      typeof password !== "string" ||
-      !password.trim()
-    ) {
-      return res.status(400).json({
-        message:
-          "Password is required.",
-      });
+    if (typeof password !== "string" || !password.trim()) {
+      return res.status(400).json({ message: "Password is required." });
     }
 
-    // -------------------------------------------------
-    // LOGIN IDENTIFIER
-    // -------------------------------------------------
-
-    const loginIdentifier =
-      typeof identifier === "string"
-        ? identifier.trim()
-        : typeof email === "string"
-          ? email.trim()
-          : typeof username === "string"
-            ? username.trim()
-            : "";
+    // Determine login query parameter
+    const loginIdentifier = (identifier || email || username || "").trim();
 
     if (!loginIdentifier) {
-      return res.status(400).json({
-        message:
-          "Email or username is required.",
-      });
+      return res.status(400).json({ message: "Email or username is required." });
     }
-
-    // -------------------------------------------------
-    // JWT
-    // -------------------------------------------------
 
     if (!process.env.JWT_SECRET) {
-      console.error(
-        "JWT_SECRET is missing"
-      );
-
-      return res.status(500).json({
-        message:
-          "JWT configuration error.",
-      });
+      console.error("JWT_SECRET is missing");
+      return res.status(500).json({ message: "JWT configuration error." });
     }
 
-    // -------------------------------------------------
-    // QUERY
-    // -------------------------------------------------
+    // Search by email or username
+    const isEmailInput = loginIdentifier.includes("@");
+    const query = isEmailInput
+      ? { email: loginIdentifier.toLowerCase() }
+      : { username: loginIdentifier };
 
-    const query = {
-      $or: [
-        { email: loginIdentifier.toLowerCase() },
-        { username: loginIdentifier },
-      ],
-    };
-
-    // -------------------------------------------------
-    // FIND USER
-    // -------------------------------------------------
-
-    const user =
-      await User.findOne(
-        query
-      ).select("+password");
+    const user = await User.findOne(query).select("+password");
 
     if (!user) {
-      return res.status(401).json({
-        message:
-          "Invalid email/username or password.",
-      });
+      return res.status(401).json({ message: "Invalid email/username or password." });
     }
 
-    // -------------------------------------------------
-    // PASSWORD HASH
-    // -------------------------------------------------
-
-    if (
-      typeof user.password !==
-        "string" ||
-      !user.password
-    ) {
-      console.error(
-        `[AUTH] Missing password hash for user ${user._id}`
-      );
-
+    if (typeof user.password !== "string" || !user.password) {
+      console.error(`[AUTH] Missing password hash for user ${user._id}`);
       return res.status(500).json({
-        message:
-          "This account does not have a valid password. Please reset the account password.",
+        message: "This account does not have a valid password. Please reset the account password.",
       });
     }
 
-    // -------------------------------------------------
-    // COMPARE
-    // -------------------------------------------------
-
-    const isPasswordCorrect =
-      await bcrypt.compare(
-        password,
-        user.password
-      );
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
     if (!isPasswordCorrect) {
-      return res.status(401).json({
-        message:
-          "Invalid email/username or password.",
-      });
+      return res.status(401).json({ message: "Invalid email/username or password." });
     }
 
-    // -------------------------------------------------
-    // JWT
-    // -------------------------------------------------
-
-    const token =
-      jwt.sign(
-        {
-          id: String(
-            user._id
-          ),
-        },
-        process.env.JWT_SECRET,
-        {
-          expiresIn:
-            JWT_EXPIRES_IN,
-        }
-      );
-
-    // -------------------------------------------------
-    // SAFE USER
-    // -------------------------------------------------
-
-    const userData =
-      createSafeUser(user);
-
-    return res.status(200).json({
-      message:
-        "Login successful.",
-
-      token,
-
-      user:
-        userData,
-    });
-  } catch (error) {
-    console.error(
-      "Login error:",
-      error
+    const token = jwt.sign(
+      { id: String(user._id) },
+      process.env.JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
     );
 
-    return res.status(500).json({
-      message:
-        "Server error during login.",
+    return res.status(200).json({
+      message: "Login successful.",
+      token,
+      user: createSafeUser(user),
     });
+  } catch (error) {
+    console.error("Login error:", error);
+    return res.status(500).json({ message: "Server error during login." });
   }
 };
 
@@ -453,27 +210,16 @@ exports.loginUser = async (
 // POST /api/auth/forgot-password
 // =====================================================
 
-exports.requestPasswordReset = async (
-  req,
-  res
-) => {
+exports.requestPasswordReset = async (req, res) => {
   const genericResponse = {
-    message:
-      "If an account exists for that email, a reset code has been sent.",
+    message: "If an account exists for that email, a reset code has been sent.",
   };
 
   try {
-    if (
-      process.env.NODE_ENV === "production" &&
-      !hasSmtpConfig()
-    ) {
-      console.error(
-        "Password reset email service is not configured."
-      );
-
+    if (process.env.NODE_ENV === "production" && !hasSmtpConfig()) {
+      console.error("Password reset email service is not configured.");
       return res.status(503).json({
-        message:
-          "Password reset email service is temporarily unavailable.",
+        message: "Password reset email service is temporarily unavailable.",
       });
     }
 
@@ -483,29 +229,19 @@ exports.requestPasswordReset = async (
         : "";
 
     if (!email) {
-      return res.status(400).json({
-        message: "Email is required.",
-      });
+      return res.status(400).json({ message: "Email is required." });
     }
 
-    const user =
-      await User.findOne({ email }).select(
-        "+passwordResetOtpHash +passwordResetExpiresAt"
-      );
+    const user = await User.findOne({ email }).select(
+      "+passwordResetOtpHash +passwordResetExpiresAt"
+    );
 
     if (!user) {
       return res.status(200).json(genericResponse);
     }
 
-    const otp = String(
-      crypto.randomInt(100000, 1000000)
-    );
-
-    const tokenHash =
-      crypto
-        .createHash("sha256")
-        .update(otp)
-        .digest("hex");
+    const otp = String(crypto.randomInt(100000, 1000000));
+    const tokenHash = crypto.createHash("sha256").update(otp).digest("hex");
 
     user.passwordResetOtpHash = tokenHash;
     user.passwordResetExpiresAt = new Date(
@@ -524,28 +260,19 @@ exports.requestPasswordReset = async (
           expiresInMinutes: PASSWORD_RESET_MINUTES,
         });
       } catch (emailError) {
-        console.error(
-          "Password reset OTP email failed:",
-          emailError.message
-        );
+        console.error("Password reset OTP email failed:", emailError.message);
       }
     }
 
-    if (
-      process.env.NODE_ENV === "production" &&
-      !emailSent
-    ) {
+    if (process.env.NODE_ENV === "production" && !emailSent) {
       return res.status(503).json({
-        message:
-          "Password reset email service is temporarily unavailable.",
+        message: "Password reset email service is temporarily unavailable.",
       });
     }
 
     return res.status(200).json({
       ...genericResponse,
-      ...(!emailSent && process.env.NODE_ENV !== "production"
-        ? { otp }
-        : {}),
+      ...(!emailSent && process.env.NODE_ENV !== "production" ? { otp } : {}),
     });
   } catch (error) {
     console.error("Password reset request error:", error);
@@ -558,10 +285,7 @@ exports.requestPasswordReset = async (
 // POST /api/auth/reset-password
 // =====================================================
 
-exports.resetPassword = async (
-  req,
-  res
-) => {
+exports.resetPassword = async (req, res) => {
   try {
     const email =
       typeof req.body?.email === "string"
@@ -574,9 +298,7 @@ exports.resetPassword = async (
         : "";
 
     const password =
-      typeof req.body?.password === "string"
-        ? req.body.password
-        : "";
+      typeof req.body?.password === "string" ? req.body.password : "";
 
     if (!email || !otp || !password) {
       return res.status(400).json({
@@ -590,39 +312,23 @@ exports.resetPassword = async (
       });
     }
 
-    const user =
-      await User.findOne({
-        email,
-      }).select(
-        "+passwordResetOtpHash +passwordResetExpiresAt"
-      );
-
-    if (!user) {
-      return res.status(400).json({
-        message: "This OTP is invalid or expired.",
-      });
-    }
+    const user = await User.findOne({ email }).select(
+      "+passwordResetOtpHash +passwordResetExpiresAt"
+    );
 
     if (
+      !user ||
       !user.passwordResetOtpHash ||
       !user.passwordResetExpiresAt ||
       user.passwordResetExpiresAt.getTime() <= Date.now()
     ) {
-      return res.status(400).json({
-        message: "This OTP is invalid or expired.",
-      });
+      return res.status(400).json({ message: "This OTP is invalid or expired." });
     }
 
-    const otpHash =
-      crypto
-        .createHash("sha256")
-        .update(otp)
-        .digest("hex");
+    const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
 
     if (otpHash !== user.passwordResetOtpHash) {
-      return res.status(400).json({
-        message: "This OTP is invalid or expired.",
-      });
+      return res.status(400).json({ message: "This OTP is invalid or expired." });
     }
 
     user.password = await bcrypt.hash(password, 10);
@@ -635,9 +341,7 @@ exports.resetPassword = async (
     });
   } catch (error) {
     console.error("Password reset error:", error);
-    return res.status(500).json({
-      message: "Failed to reset password.",
-    });
+    return res.status(500).json({ message: "Failed to reset password." });
   }
 };
 
@@ -646,39 +350,17 @@ exports.resetPassword = async (
 // GET /api/auth/users
 // =====================================================
 
-exports.getUsers = async (
-  req,
-  res
-) => {
+exports.getUsers = async (req, res) => {
   try {
-    const users =
-      await User.find()
-        .select(
-          USER_SELECT_FIELDS
-        )
-        .sort({
-          username: 1,
-        })
-        .lean();
+    const users = await User.find()
+      .select(USER_SELECT_FIELDS)
+      .sort({ username: 1 })
+      .lean();
 
-    const safeUsers =
-      users.map(
-        createSafeUser
-      );
-
-    return res.status(200).json(
-      safeUsers
-    );
+    return res.status(200).json(users.map(createSafeUser));
   } catch (error) {
-    console.error(
-      "Get users error:",
-      error
-    );
-
-    return res.status(500).json({
-      message:
-        "Failed to fetch users.",
-    });
+    console.error("Get users error:", error);
+    return res.status(500).json({ message: "Failed to fetch users." });
   }
 };
 
@@ -687,74 +369,35 @@ exports.getUsers = async (
 // PUT /api/auth/language
 // =====================================================
 
-exports.updateLanguage =
-  async (req, res) => {
-    try {
-      const {
-        language,
-      } = req.body || {};
+exports.updateLanguage = async (req, res) => {
+  try {
+    const { language } = req.body || {};
+    const userId = req.user?.id || req.user?._id;
 
-      if (
-        !req.user ||
-        !req.user.id
-      ) {
-        return res.status(401).json({
-          message:
-            "Authentication required.",
-        });
-      }
-
-      if (
-        !ALLOWED_LANGUAGES.includes(
-          language
-        )
-      ) {
-        return res.status(400).json({
-          message:
-            "Unsupported language.",
-        });
-      }
-
-      const user =
-        await User.findByIdAndUpdate(
-          req.user.id,
-          {
-            $set: {
-              language,
-            },
-          },
-          {
-            new: true,
-            runValidators: true,
-          }
-        ).select(
-          USER_SELECT_FIELDS
-        );
-
-      if (!user) {
-        return res.status(404).json({
-          message:
-            "User not found.",
-        });
-      }
-
-      return res.status(200).json({
-        message:
-          "Language updated successfully.",
-
-        user:
-          createSafeUser(user),
-      });
-    } catch (error) {
-      console.error(
-        "Update language error:",
-        error
-      );
-
-      return res.status(500).json({
-        message:
-          "Failed to update language.",
-      });
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required." });
     }
-  };
 
+    if (!ALLOWED_LANGUAGES.includes(language)) {
+      return res.status(400).json({ message: "Unsupported language." });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: { language } },
+      { new: true, runValidators: true }
+    ).select(USER_SELECT_FIELDS);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    return res.status(200).json({
+      message: "Language updated successfully.",
+      user: createSafeUser(user),
+    });
+  } catch (error) {
+    console.error("Update language error:", error);
+    return res.status(500).json({ message: "Failed to update language." });
+  }
+};
