@@ -48,6 +48,15 @@ exports.registerUser = async (req, res, next) => {
       // Refresh their OTP and re-send instead of leaving them stuck.
       if (existingUser.email === normalizedEmail && !existingUser.isVerified) {
         const otp = generateOtp();
+
+        // Update password + username to match THIS submission, not just the OTP.
+        // Without this, a retried registration (e.g. after a false "timeout" on the
+        // first attempt) would silently keep the old password from attempt #1,
+        // causing login to fail later with the newly-typed password.
+        const salt = await bcrypt.genSalt(10);
+        existingUser.username = username.trim();
+        existingUser.password = await bcrypt.hash(password, salt);
+        existingUser.language = language || existingUser.language || "English";
         existingUser.verificationCodeHash = hashToken(otp);
         existingUser.verificationCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
         await existingUser.save();
