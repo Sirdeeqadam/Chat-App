@@ -12,6 +12,7 @@ const smtpHost = process.env.SMTP_HOST;
 const smtpPort = Number(process.env.SMTP_PORT) || 465;
 const smtpSecure = String(process.env.SMTP_SECURE || "true").toLowerCase() === "true";
 const emailFrom = process.env.SMTP_FROM || `"Multilingual Chat" <${emailUser}>`;
+const normalizedEmailPass = String(emailPass || "").replace(/\s+/g, "");
 
 if (!emailUser || !emailPass) {
   console.error(
@@ -33,11 +34,14 @@ const transporterOptions = {
         host: smtpHost,
         port: smtpPort,
         secure: smtpSecure,
+        tls: {
+          servername: smtpHost,
+        },
       }
     : { service: "gmail" }),
   auth: {
     user: emailUser,
-    pass: emailPass,
+    pass: normalizedEmailPass,
   },
   family: 4,
   connectionTimeout: 10000,
