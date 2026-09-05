@@ -5,6 +5,13 @@ const { sendEmail } = require("../utils/sendEmail");
 
 // Helper: Generate 6-digit numeric OTP
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+const isStrongPassword = (password) =>
+  password.length >= 6 &&
+  /[A-Za-z]/.test(password) &&
+  /\d/.test(password) &&
+  /[^A-Za-z0-9]/.test(password);
+const passwordRequirementsMessage =
+  "Password must be at least 6 characters and include a letter, a number, and a special character.";
 
 // =====================================================
 // 1. REGISTER USER
@@ -17,18 +24,51 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({ message: "All required fields must be provided." });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters." });
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ message: passwordRequirementsMessage });
     }
 
     const cleanEmail = email.toLowerCase().trim();
     const cleanUsername = username.trim();
 
-    const existingUser = await User.findOne({
-      $or: [{ email: cleanEmail }, { username: cleanUsername }],
-    });
+    const existingEmailUser = await User.findOne({ email: cleanEmail }).select(
+      "+verificationCodeHash +verificationCodeExpiresAt"
+    );
 
-    if (existingUser) {
+    if (existingEmailUser) {
+      if (existingEmailUser.isVerified) {
+        return res.status(400).json({ message: "This email is already registered. Please log in." });
+      }
+
+      const otp = generateOTP();
+      existingEmailUser.verificationCodeHash = otp;
+      existingEmailUser.verificationCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      await existingEmailUser.save();
+
+      try {
+        await sendEmail({
+          to: existingEmailUser.email,
+          subject: "Verify Your Email - New Verification Code",
+          html: `<h2>Welcome back, ${existingEmailUser.username}!</h2><p>Your new email verification code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
+          text: `Your new email verification code is: ${otp}`,
+        });
+      } catch (emailErr) {
+        console.error("[REGISTER EXISTING EMAIL SEND ERROR]", emailErr);
+        return res.status(503).json({
+          message: "This account is pending verification, but the OTP email could not be sent.",
+          email: existingEmailUser.email,
+        });
+      }
+
+      return res.status(200).json({
+        message: "This account is pending verification. A new OTP has been sent.",
+        email: existingEmailUser.email,
+        otp: process.env.NODE_ENV === "development" ? otp : undefined,
+      });
+    }
+
+    const existingUsername = await User.findOne({ username: cleanUsername });
+    if (existingUsername) {
       return res.status(400).json({ message: "User with this email or username already exists." });
     }
 
@@ -49,7 +89,6 @@ exports.registerUser = async (req, res) => {
       bio: "",
     });
 
-    // Send email safely (catches email failure without breaking user creation)
     try {
       await sendEmail({
         to: newUser.email,
@@ -59,6 +98,10 @@ exports.registerUser = async (req, res) => {
       });
     } catch (emailErr) {
       console.error("[REGISTER EMAIL SEND ERROR]", emailErr);
+      return res.status(503).json({
+        message: "Account created, but the verification email could not be sent. Please try Resend OTP.",
+        email: newUser.email,
+      });
     }
 
     return res.status(201).json({
@@ -156,6 +199,9 @@ exports.resendVerificationOtp = async (req, res) => {
       });
     } catch (emailErr) {
       console.error("[RESEND EMAIL ERROR]", emailErr);
+      return res.status(503).json({
+        message: "The OTP could not be sent. Please check the email configuration and try again.",
+      });
     }
 
     return res.status(200).json({
@@ -210,6 +256,11 @@ exports.loginUser = async (req, res) => {
         });
       } catch (emailErr) {
         console.error("[LOGIN EMAIL ERROR]", emailErr);
+        return res.status(503).json({
+          message: "Your email is not verified, but a new OTP could not be sent. Please try Resend OTP.",
+          unverified: true,
+          email: user.email,
+        });
       }
 
       return res.status(403).json({
@@ -265,6 +316,9 @@ exports.requestPasswordReset = async (req, res) => {
       });
     } catch (emailErr) {
       console.error("[FORGOT PASSWORD EMAIL ERROR]", emailErr);
+      return res.status(503).json({
+        message: "The password-reset OTP could not be sent. Please check the email configuration and try again.",
+      });
     }
 
     return res.status(200).json({
@@ -292,8 +346,8 @@ exports.resetPassword = async (req, res) => {
       "+passwordResetOtpHash +passwordResetExpiresAt"
     );
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters." });
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ message: passwordRequirementsMessage });
     }
     if (!user) {
       return res.status(400).json({ message: "Invalid request." });

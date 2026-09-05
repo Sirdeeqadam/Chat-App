@@ -47,7 +47,7 @@ const Login = () => {
     } catch (loginError) {
       console.error("Login error:", loginError);
 
-      if (loginError.response?.status === 403 && loginError.response?.data?.unverified) {
+      if (loginError.response?.data?.unverified) {
         navigate("/verify-otp", {
           state: { email: loginError.response.data.email },
         });

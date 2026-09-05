@@ -6,7 +6,7 @@ import {
   respondToFriendRequest,
 } from "../services/friendService";
 
-const AddFriendsPicker = ({ className = "" }) => {
+const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestUpdated }) => {
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
@@ -120,6 +120,7 @@ const AddFriendsPicker = ({ className = "" }) => {
       setRequestingUserId(user._id);
       setError("");
       await respondToFriendRequest(user.friendshipId, action);
+      onRequestUpdated?.();
 
       const updateUserStatus = (list) =>
         list.map((item) => {
@@ -151,20 +152,12 @@ const AddFriendsPicker = ({ className = "" }) => {
         return <span className="request-pending">Pending</span>;
       case "incoming":
         return (
-          <div className="request-action-group" style={{ display: "flex", gap: "6px" }}>
+          <div className="request-action-group">
             <button
               type="button"
               className="accept-friend-btn"
               onClick={() => handleRespondRequest(user, "accept")}
               disabled={requestingUserId === user._id}
-              style={{
-                backgroundColor: "#22c55e",
-                color: "#fff",
-                border: "none",
-                borderRadius: "6px",
-                padding: "4px 10px",
-                cursor: "pointer",
-              }}
             >
               {requestingUserId === user._id ? "..." : "Accept"}
             </button>
@@ -173,14 +166,6 @@ const AddFriendsPicker = ({ className = "" }) => {
               className="decline-friend-btn"
               onClick={() => handleRespondRequest(user, "decline")}
               disabled={requestingUserId === user._id}
-              style={{
-                backgroundColor: "#ef4444",
-                color: "#fff",
-                border: "none",
-                borderRadius: "6px",
-                padding: "4px 10px",
-                cursor: "pointer",
-              }}
             >
               Decline
             </button>
@@ -237,6 +222,11 @@ const AddFriendsPicker = ({ className = "" }) => {
           <circle cx="17" cy="17" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
           <path d="M17 15v4M15 17h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
+        {incomingRequestCount > 0 && (
+          <span className="friend-request-badge" aria-label={`${incomingRequestCount} incoming friend requests`}>
+            {incomingRequestCount > 99 ? "99+" : incomingRequestCount}
+          </span>
+        )}
       </button>
 
       {open && (

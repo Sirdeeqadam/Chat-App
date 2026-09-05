@@ -12,6 +12,7 @@ import {
 
 import FileAttachmentPicker from "../FileAttachmentPicker";
 import VoiceRecorder from "../VoiceRecorder";
+import VoiceMessagePlayer from "../VoiceMessagePlayer";
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
@@ -1092,11 +1093,8 @@ const GroupChat = ({
 
                   {msg.messageType === "audio" &&
                   msg.attachmentUrl ? (
-                    <audio
-                      controls
-                      src={getAudioUrl(
-                        msg.attachmentUrl
-                      )}
+                    <VoiceMessagePlayer
+                      src={getAudioUrl(msg.attachmentUrl)}
                     />
                   ) : msg.messageType === "video" &&
                     msg.attachmentUrl ? (

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import api from "../services/api";
 
 const VerifyEmail = ({ email = "digitalsirdeeq@gmail.com" }) => {
   const [otp, setOtp] = useState("");
@@ -13,19 +14,8 @@ const VerifyEmail = ({ email = "digitalsirdeeq@gmail.com" }) => {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/verify-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, otp }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Verification failed");
-      }
+      const response = await api.post("/auth/verify-email", { email, otp });
+      const data = response.data;
 
       setMessage("Email verified successfully! You can now log in.");
     } catch (err) {

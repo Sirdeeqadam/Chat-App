@@ -1,10 +1,26 @@
 const nodemailer = require("nodemailer");
 
-const emailUser = process.env.NODE_CODE_SENDING_EMAIL_ADDRESS || process.env.EMAIL_USER;
-const emailPass = process.env.NODE_CODE_SENDING_EMAIL_PASSWORD || process.env.EMAIL_PASS;
+const emailUser =
+  process.env.SMTP_USER ||
+  process.env.NODE_CODE_SENDING_EMAIL_ADDRESS ||
+  process.env.EMAIL_USER;
+const emailPass =
+  process.env.SMTP_PASS ||
+  process.env.NODE_CODE_SENDING_EMAIL_PASSWORD ||
+  process.env.EMAIL_PASS;
+const smtpHost = process.env.SMTP_HOST;
+const smtpPort = Number(process.env.SMTP_PORT) || 465;
+const smtpSecure = String(process.env.SMTP_SECURE || "true").toLowerCase() === "true";
+const emailFrom = process.env.SMTP_FROM || `"Multilingual Chat" <${emailUser}>`;
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
+const transporterOptions = {
+  ...(smtpHost
+    ? {
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpSecure,
+      }
+    : { service: "gmail" }),
   auth: {
     user: emailUser,
     pass: emailPass,
@@ -13,7 +29,9 @@ const transporter = nodemailer.createTransport({
   connectionTimeout: 10000,
   greetingTimeout: 5000,
   socketTimeout: 10000,
-});
+};
+
+const transporter = nodemailer.createTransport(transporterOptions);
 
 transporter.verify((error) => {
   if (error) {
@@ -26,7 +44,7 @@ transporter.verify((error) => {
 const sendEmail = async ({ to, subject, html, text }) => {
   try {
     const info = await transporter.sendMail({
-      from: `"Multilingual Chat" <${emailUser}>`,
+      from: emailFrom,
       to,
       subject,
       text,

@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import {
+  isStrongPassword,
+  passwordRequirementsMessage,
+} from "../services/passwordValidation";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -58,8 +62,8 @@ const ForgotPassword = () => {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (!isStrongPassword(password)) {
+      setError(passwordRequirementsMessage);
       return;
     }
 
@@ -140,7 +144,7 @@ const ForgotPassword = () => {
 
             <input
               type="password"
-              placeholder="New password"
+              placeholder="e.g. Chat@2026"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="new-password"
@@ -150,7 +154,7 @@ const ForgotPassword = () => {
 
             <input
               type="password"
-              placeholder="Confirm new password"
+              placeholder="Confirm password"
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
               autoComplete="new-password"

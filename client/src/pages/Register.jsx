@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import {
+  isStrongPassword,
+  passwordRequirementsMessage,
+} from "../services/passwordValidation";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -26,6 +30,11 @@ const Register = () => {
     e.preventDefault();
     setError("");
 
+    if (!isStrongPassword(formData.password)) {
+      setError(passwordRequirementsMessage);
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await api.post("/auth/register", formData);
@@ -37,6 +46,13 @@ const Register = () => {
         },
       });
     } catch (err) {
+      if (err.response?.data?.email) {
+        navigate("/verify-otp", {
+          state: { email: err.response.data.email },
+        });
+        return;
+      }
+
       setError(
         err.response?.data?.message || "Registration failed. Please try again."
       );
@@ -75,10 +91,11 @@ const Register = () => {
         <input
           type="password"
           name="password"
-          placeholder="Password"
+          placeholder="e.g. Chat@2026"
           value={formData.password}
           onChange={handleChange}
           required
+          minLength={6}
           disabled={loading}
         />
 

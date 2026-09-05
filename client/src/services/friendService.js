@@ -10,6 +10,11 @@ export const getFriends = async () => {
   return Array.isArray(response.data) ? response.data : [];
 };
 
+export const getRecentPrivateChats = async () => {
+  const response = await api.get("/messages/private/recent");
+  return response.data && typeof response.data === "object" ? response.data : {};
+};
+
 export const searchFriends = async (query) => {
   const response = await api.get("/friends/search", {
     params: { q: query },

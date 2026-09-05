@@ -223,6 +223,50 @@ router.post(
 // =====================================================
 
 router.get(
+  "/private/recent",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const userId = new mongoose.Types.ObjectId(String(req.user.id));
+
+      const recentChats = await Message.aggregate([
+        {
+          $match: {
+            roomId: null,
+            $or: [{ sender: userId }, { receiver: userId }],
+          },
+        },
+        { $sort: { createdAt: -1 } },
+        {
+          $project: {
+            otherUserId: {
+              $cond: [{ $eq: ["$sender", userId] }, "$receiver", "$sender"],
+            },
+            lastMessageAt: "$createdAt",
+          },
+        },
+        {
+          $group: {
+            _id: "$otherUserId",
+            lastMessageAt: { $first: "$lastMessageAt" },
+          },
+        },
+      ]);
+
+      return res.json(
+        recentChats.reduce((result, chat) => {
+          result[String(chat._id)] = chat.lastMessageAt;
+          return result;
+        }, {})
+      );
+    } catch (error) {
+      console.error("Get recent private chats error:", error);
+      return res.status(500).json({ message: "Failed to load recent chats." });
+    }
+  }
+);
+
+router.get(
   "/private/:userId/:otherUserId",
   authMiddleware,
   async (req, res) => {

@@ -23,10 +23,12 @@ import {
 import LanguageSelector from "../components/LanguageSelector";
 import AddFriendsPicker from "../components/AddFriendsPicker";
 import VoiceRecorder from "../components/VoiceRecorder";
+import VoiceMessagePlayer from "../components/VoiceMessagePlayer";
 import FileAttachmentPicker from "../components/FileAttachmentPicker";
 
 import {
   getFriends,
+  getRecentPrivateChats,
   sendFriendRequest,
   updateFriendRequest,
 } from "../services/friendService";
@@ -866,6 +868,23 @@ const Chat = () => {
   useEffect(() => {
     loadFriends();
   }, [loadFriends]);
+
+  const loadRecentChatTimes = useCallback(async () => {
+    if (!currentUserId) {
+      return;
+    }
+
+    try {
+      const recentChatTimes = await getRecentPrivateChats();
+      setLastMessageTime(recentChatTimes);
+    } catch (error) {
+      console.error("Failed to load recent chat times:", error);
+    }
+  }, [currentUserId]);
+
+  useEffect(() => {
+    loadRecentChatTimes();
+  }, [loadRecentChatTimes]);
 
   useEffect(() => {
     const refreshTimer = setInterval(loadFriends, 30000);
@@ -3820,7 +3839,7 @@ const Chat = () => {
 
           <div>
           <h2>
-            Chat
+            Multilingual
           </h2>
 
           <p>
@@ -3969,7 +3988,11 @@ const Chat = () => {
           )}
           </div>
 
-          <AddFriendsPicker className="header-add-friends-picker" />
+          <AddFriendsPicker
+            className="header-add-friends-picker"
+            incomingRequestCount={pendingFriendRequests.length}
+            onRequestUpdated={loadFriends}
+          />
 
           <LanguageSelector />
 
@@ -4205,7 +4228,11 @@ const Chat = () => {
                 </p>
               </div>
 
-              <AddFriendsPicker className="sidebar-add-friends-picker" />
+              <AddFriendsPicker
+                className="sidebar-add-friends-picker"
+                incomingRequestCount={pendingFriendRequests.length}
+                onRequestUpdated={loadFriends}
+              />
 
             </div>
 
@@ -5041,11 +5068,8 @@ const Chat = () => {
 
                           {msg.messageType === "audio" &&
                           msg.attachmentUrl ? (
-                            <audio
-                              controls
-                              src={getImageUrl(
-                                msg.attachmentUrl
-                              )}
+                            <VoiceMessagePlayer
+                              src={getImageUrl(msg.attachmentUrl)}
                             />
                           ) : msg.messageType === "video" &&
                             msg.attachmentUrl ? (
@@ -5088,32 +5112,34 @@ const Chat = () => {
                             </p>
                           )}
 
-                          <small className="message-time">
-                            {msg.createdAt
-                              ? new Date(
-                                  msg.createdAt
-                                ).toLocaleTimeString()
-                              : ""}
-                          </small>
-
-                          {isMine && (
-                            <small
-                              className={`message-status ${
-                                msg.deliveryStatus ===
-                                "read"
-                                  ? "read"
-                                  : ""
-                              }`}
-                            >
-                              {msg.deliveryStatus ===
-                              "read"
-                                ? "✓✓ Read"
-                                : msg.deliveryStatus ===
-                                  "delivered"
-                                ? "✓✓ Delivered"
-                                : "✓ Sent"}
+                          <div className="message-meta">
+                            <small className="message-time">
+                              {msg.createdAt
+                                ? new Date(
+                                    msg.createdAt
+                                  ).toLocaleTimeString()
+                                : ""}
                             </small>
-                          )}
+
+                            {isMine && (
+                              <small
+                                className={`message-status ${
+                                  msg.deliveryStatus ===
+                                  "read"
+                                    ? "read"
+                                    : ""
+                                }`}
+                              >
+                                {msg.deliveryStatus ===
+                                "read"
+                                  ? "✓✓ Read"
+                                  : msg.deliveryStatus ===
+                                    "delivered"
+                                  ? "✓✓ Delivered"
+                                  : "✓ Sent"}
+                              </small>
+                            )}
+                          </div>
 
                         </div>
                       );

@@ -98,7 +98,7 @@ const FileAttachmentPicker = ({
         title="Add attachment"
         aria-label="Add attachment"
       >
-        {uploading ? "..." : "+"}
+        {uploading ? "..." : <span className="attachment-plus">+</span>}
       </button>
 
       {open && !uploading && (
