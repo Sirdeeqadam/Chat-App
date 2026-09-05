@@ -1,5 +1,11 @@
 require("dotenv").config(); // MUST BE AT THE VERY TOP
 
+const dns = require("dns");
+
+if (typeof dns.setDefaultResultOrder === "function") {
+  dns.setDefaultResultOrder("ipv4first");
+}
+
 const express = require("express");
 const http = require("http");
 const mongoose = require("mongoose");

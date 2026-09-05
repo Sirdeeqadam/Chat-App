@@ -1,4 +1,9 @@
 const nodemailer = require("nodemailer");
+const dns = require("dns");
+
+if (typeof dns.setDefaultResultOrder === "function") {
+  dns.setDefaultResultOrder("ipv4first");
+}
 
 const hasSmtpConfig = () => {
   return Boolean(
@@ -10,6 +15,9 @@ const hasSmtpConfig = () => {
 
 const getSmtpFrom = () =>
   process.env.SMTP_FROM || process.env.SMTP_USER;
+
+const getSmtpPassword = () =>
+  String(process.env.SMTP_PASS || "").replace(/\s+/g, "");
 
 const createTransporter = () => {
   const port = Number(process.env.SMTP_PORT) || 465;
@@ -24,7 +32,10 @@ const createTransporter = () => {
         : isPort465,
     auth: {
       user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      pass: getSmtpPassword(),
+    },
+    tls: {
+      servername: process.env.SMTP_HOST || "smtp.gmail.com",
     },
     // Force Nodemailer to resolve IPv4 addresses only
     family: 4,
