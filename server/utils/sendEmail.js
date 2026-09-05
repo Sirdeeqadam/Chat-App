@@ -1,4 +1,10 @@
 const nodemailer = require("nodemailer");
+const dns = require("dns");
+
+// Render instances may have no IPv6 route. Prefer Gmail's IPv4 address.
+if (typeof dns.setDefaultResultOrder === "function") {
+  dns.setDefaultResultOrder("ipv4first");
+}
 
 const emailUser =
   process.env.SMTP_USER ||
