@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 
 const ForgotPassword = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
@@ -79,6 +80,7 @@ const ForgotPassword = () => {
       setConfirmPassword("");
       setOtp("");
       setDevOtp("");
+      setTimeout(() => navigate("/login", { replace: true }), 1200);
     } catch (resetError) {
       console.error("[RESET PASSWORD ERROR]", resetError.response || resetError);
 

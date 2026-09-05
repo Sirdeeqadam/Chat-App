@@ -17,6 +17,10 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({ message: "All required fields must be provided." });
     }
 
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters." });
+    }
+
     const cleanEmail = email.toLowerCase().trim();
     const cleanUsername = username.trim();
 
@@ -79,7 +83,9 @@ exports.verifyEmail = async (req, res) => {
       return res.status(400).json({ message: "Email and OTP are required." });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = await User.findOne({ email: email.toLowerCase().trim() }).select(
+      "+verificationCodeHash +verificationCodeExpiresAt"
+    );
 
     if (!user) {
       return res.status(404).json({ message: "User not found." });
@@ -124,7 +130,9 @@ exports.resendVerificationOtp = async (req, res) => {
       return res.status(400).json({ message: "Email is required." });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = await User.findOne({ email: email.toLowerCase().trim() }).select(
+      "+verificationCodeHash +verificationCodeExpiresAt"
+    );
 
     if (!user) {
       return res.status(404).json({ message: "User not found." });
@@ -166,15 +174,16 @@ exports.resendVerificationOtp = async (req, res) => {
 exports.loginUser = async (req, res) => {
   try {
     const { identifier, email, username, password } = req.body;
-    const loginInput = (identifier || email || username || "").toLowerCase().trim();
+    const rawLoginInput = (identifier || email || username || "").trim();
+    const emailLoginInput = rawLoginInput.toLowerCase();
 
-    if (!loginInput || !password) {
+    if (!rawLoginInput || !password) {
       return res.status(400).json({ message: "Please provide credentials and password." });
     }
 
     const user = await User.findOne({
-      $or: [{ email: loginInput }, { username: loginInput }],
-    });
+      $or: [{ email: emailLoginInput }, { username: rawLoginInput }],
+    }).select("+password +verificationCodeHash +verificationCodeExpiresAt");
 
     if (!user) {
       return res.status(401).json({ message: "Invalid email/username or password." });
@@ -235,7 +244,9 @@ exports.requestPasswordReset = async (req, res) => {
       return res.status(400).json({ message: "Email address is required." });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = await User.findOne({ email: email.toLowerCase().trim() }).select(
+      "+passwordResetOtpHash +passwordResetExpiresAt"
+    );
     if (!user) {
       return res.status(200).json({ message: "If that email exists, an OTP has been sent." });
     }
@@ -277,7 +288,13 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Email, OTP, and new password are required." });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = await User.findOne({ email: email.toLowerCase().trim() }).select(
+      "+passwordResetOtpHash +passwordResetExpiresAt"
+    );
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters." });
+    }
     if (!user) {
       return res.status(400).json({ message: "Invalid request." });
     }

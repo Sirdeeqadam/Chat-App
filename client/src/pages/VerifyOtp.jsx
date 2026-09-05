@@ -54,6 +54,33 @@ const VerifyOtp = () => {
     }
   };
 
+  const handleResend = async () => {
+    setError("");
+    setMessage("");
+
+    if (!email.trim()) {
+      setError("Email address is required.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await api.post("/auth/resend-otp", {
+        email: email.trim(),
+      });
+      const developmentOtp = response.data?.otp;
+      setMessage(
+        developmentOtp
+          ? `A new OTP was sent. Development OTP: ${developmentOtp}`
+          : response.data?.message || "A new OTP was sent to your email."
+      );
+    } catch (err) {
+      setError(err.response?.data?.message || "Unable to resend the OTP.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="auth-container">
       <form className="auth-form" onSubmit={handleSubmit}>
@@ -89,6 +116,15 @@ const VerifyOtp = () => {
 
         <button type="submit" disabled={loading}>
           {loading ? "Verifying..." : "Verify OTP"}
+        </button>
+
+        <button
+          type="button"
+          className="auth-secondary-button"
+          onClick={handleResend}
+          disabled={loading}
+        >
+          Resend OTP
         </button>
 
         <p>
