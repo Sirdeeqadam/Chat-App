@@ -12,7 +12,6 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
 const { Server } = require("socket.io");
-const { transporter } = require("./utils/sendEmail"); // Extracted email utility
 
 // =========================================================
 // ROUTES
@@ -25,6 +24,7 @@ const readStateRoutes = require("./routes/readStateRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const friendRoutes = require("./routes/friendRoutes");
 const searchRoutes = require("./routes/searchRoutes");
+const { sendEmail } = require("./utils/sendEmail");
 
 // =========================================================
 // SOCKET & MIDDLEWARE
@@ -39,9 +39,6 @@ const socketAuth = require("./middleware/socketAuth");
 
 const app = express();
 const server = http.createServer(app);
-
-// Attach transporter to Express app instance for global route access
-app.set("transporter", transporter);
 
 // =========================================================
 // CONFIGURATION & CORS SETUP
@@ -163,9 +160,7 @@ app.post("/api/send-email", async (req, res, next) => {
   }
 
   try {
-    const emailUser = process.env.NODE_CODE_SENDING_EMAIL_ADDRESS || process.env.EMAIL_USER;
-    const info = await transporter.sendMail({
-      from: `Chat App <${emailUser}>`,
+    const info = await sendEmail({
       to,
       subject: subject || "Notification from Multilingual Chat",
       text: message || "",
