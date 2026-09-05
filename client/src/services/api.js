@@ -4,8 +4,11 @@ import axios from "axios";
 // API BASE URL
 // =====================================================
 
-const rawBaseURL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const defaultBaseURL = import.meta.env.PROD
+  ? "https://chat-app-k29o.onrender.com/api"
+  : "http://localhost:5000/api";
+
+const rawBaseURL = import.meta.env.VITE_API_URL || defaultBaseURL;
 
 const baseURL =
   String(rawBaseURL)
@@ -22,6 +25,12 @@ const api = axios.create({
   // Increased from 15s to 60s to prevent timeouts during Render free-tier cold starts
   timeout: 60000,
 });
+
+if (import.meta.env.PROD && !import.meta.env.VITE_API_URL) {
+  console.error(
+    "[API] VITE_API_URL is missing in the deployed frontend environment."
+  );
+}
 
 // =====================================================
 // ATTACH JWT
