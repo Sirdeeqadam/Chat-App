@@ -227,10 +227,13 @@ router.put(
           });
         }
 
+        const escapedUsername = cleanedUsername.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         const existingUser =
           await User.findOne({
-            username:
-              cleanedUsername,
+            username: {
+              $regex: `^${escapedUsername}$`,
+              $options: "i",
+            },
 
             _id: {
               $ne:

@@ -5277,10 +5277,12 @@ body {
 }
 
 .message.sent .voice-message-player {
+  background: transparent;
   color: #ffffff;
 }
 
 .message.received .voice-message-player {
+  background: transparent;
   color: var(--product-ink);
 }
 

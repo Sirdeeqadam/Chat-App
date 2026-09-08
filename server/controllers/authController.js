@@ -31,6 +31,10 @@ exports.registerUser = async (req, res) => {
     const cleanEmail = email.toLowerCase().trim();
     const cleanUsername = username.trim();
 
+    if (!cleanUsername) {
+      return res.status(400).json({ message: "Username is required." });
+    }
+
     const existingEmailUser = await User.findOne({ email: cleanEmail }).select(
       "+verificationCodeHash +verificationCodeExpiresAt"
     );
@@ -67,7 +71,10 @@ exports.registerUser = async (req, res) => {
       });
     }
 
-    const existingUsername = await User.findOne({ username: cleanUsername });
+    const escapedUsername = cleanUsername.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const existingUsername = await User.findOne({
+      username: { $regex: `^${escapedUsername}$`, $options: "i" },
+    });
     if (existingUsername) {
       return res.status(400).json({ message: "User with this email or username already exists." });
     }
@@ -111,6 +118,16 @@ exports.registerUser = async (req, res) => {
     });
   } catch (error) {
     console.error("[REGISTER ERROR]", error);
+
+    if (error?.code === 11000) {
+      const duplicateField = Object.keys(error.keyPattern || {})[0];
+      const message = duplicateField === "username"
+        ? "This username is already taken."
+        : "This email is already registered.";
+
+      return res.status(409).json({ message });
+    }
+
     return res.status(500).json({ message: "Internal server error during registration.", error: error.message });
   }
 };
@@ -227,8 +244,12 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ message: "Please provide credentials and password." });
     }
 
+    const escapedUsername = rawLoginInput.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const user = await User.findOne({
-      $or: [{ email: emailLoginInput }, { username: rawLoginInput }],
+      $or: [
+        { email: emailLoginInput },
+        { username: { $regex: `^${escapedUsername}$`, $options: "i" } },
+      ],
     }).select("+password +verificationCodeHash +verificationCodeExpiresAt");
 
     if (!user) {
