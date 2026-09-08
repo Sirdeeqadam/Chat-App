@@ -3879,11 +3879,6 @@ const Chat = () => {
 
           {searchOpen && (
             <div className="dashboard-search">
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <circle cx="10.8" cy="10.8" r="6.2" />
-                <path d="m16 16 4.5 4.5" />
-              </svg>
-
               <input
                 type="search"
                 name="user-search"
@@ -3893,17 +3888,6 @@ const Chat = () => {
                 autoFocus
                 aria-label="Search"
               />
-
-              {userSearch && (
-                <button
-                  type="button"
-                  className="dashboard-search-clear"
-                  onClick={() => setUserSearch("")}
-                  aria-label="Clear user search"
-                >
-                  ×
-                </button>
-              )}
             </div>
           )}
 

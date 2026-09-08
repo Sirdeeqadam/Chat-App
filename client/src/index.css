@@ -5262,12 +5262,12 @@ body {
 }
 
 .voice-message-player {
-  width: min(360px, 100%);
-  min-width: 250px;
+  width: min(300px, 100%);
+  min-width: 210px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 8px 7px 6px;
+  gap: 7px;
+  padding: 5px 5px 5px 2px;
   border-radius: 11px;
   background: #b9dcff;
 }
@@ -5457,6 +5457,105 @@ select:focus-visible {
   .dashboard-search-toggle.active,
   .dashboard-search-toggle:focus-visible {
     color: #315fc9;
+  }
+}
+
+/* Keep the phone header controls aligned with the Rooms icon color and width. */
+@media (max-width: 600px) {
+  .chat-header {
+    min-width: 0;
+    padding-inline: 10px;
+  }
+
+  .chat-header-identity {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .chat-header-identity > div {
+    min-width: 0;
+  }
+
+  .chat-header-identity h2 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .chat-header-actions {
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .header-add-friends-picker .add-friends-button,
+  .dashboard-search-toggle,
+  .language-selector-wrapper .translator-button,
+  .header-add-friends-picker .add-friends-button:hover,
+  .header-add-friends-picker .add-friends-button:focus-visible,
+  .dashboard-search-toggle:hover,
+  .dashboard-search-toggle.active,
+  .dashboard-search-toggle:focus-visible,
+  .language-selector-wrapper .translator-button:hover,
+  .language-selector-wrapper .translator-button:focus-visible {
+    color: var(--ui-blue, #3569d4);
+  }
+
+  .header-add-friends-picker .add-friends-button,
+  .dashboard-search-toggle,
+  .language-selector-wrapper .translator-button {
+    width: 36px;
+    height: 36px;
+    padding: 6px;
+  }
+
+  .header-add-friends-picker .add-friends-button svg,
+  .dashboard-search-toggle svg,
+  .language-selector-wrapper .translator-button svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .dashboard-search {
+    right: 0;
+    width: min(250px, calc(100vw - 20px));
+  }
+
+  .add-friends-modal {
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 32px);
+  }
+}
+
+@media (max-width: 380px) {
+  .chat-header {
+    padding-inline: 6px;
+  }
+
+  .chat-header-identity {
+    gap: 4px;
+  }
+
+  .chat-header-identity h2 {
+    font-size: 18px;
+  }
+
+  .chat-header-actions {
+    gap: 0;
+  }
+
+  .header-add-friends-picker .add-friends-button,
+  .dashboard-search-toggle,
+  .language-selector-wrapper .translator-button {
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+  }
+
+  .header-add-friends-picker .add-friends-button svg,
+  .dashboard-search-toggle svg,
+  .language-selector-wrapper .translator-button svg {
+    width: 20px;
+    height: 20px;
   }
 }
 

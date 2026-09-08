@@ -244,10 +244,6 @@ const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestU
           </div>
 
           <div className="add-friends-search-container">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <circle cx="10.8" cy="10.8" r="6.2" />
-              <path d="m16 16 4.5 4.5" />
-            </svg>
             <input
               type="search"
               placeholder="Search users..."
@@ -256,16 +252,6 @@ const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestU
               autoFocus
               aria-label="Search users"
             />
-            {searchQuery && (
-              <button
-                type="button"
-                className="search-clear-btn"
-                onClick={() => handleSearch("")}
-                aria-label="Clear search"
-              >
-                ×
-              </button>
-            )}
           </div>
 
           {error && <div className="add-friends-error">{error}</div>}
