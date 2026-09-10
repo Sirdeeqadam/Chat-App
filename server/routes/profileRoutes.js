@@ -1,6 +1,5 @@
 const express = require("express");
-const fs = require("fs");
-const path = require("path");
+const { uploadBuffer } = require("../utils/cloudinary");
 
 const User = require("../models/User");
 
@@ -11,23 +10,6 @@ const uploadProfilePicture =
   require("../middleware/uploadMiddleware");
 
 const router = express.Router();
-
-// =====================================================
-// UPLOAD DIRECTORY
-// =====================================================
-
-const profileUploadDirectory = path.join(
-  __dirname,
-  "..",
-  "uploads",
-  "profiles"
-);
-
-if (!fs.existsSync(profileUploadDirectory)) {
-  fs.mkdirSync(profileUploadDirectory, {
-    recursive: true,
-  });
-}
 
 // =====================================================
 // USER SELECT
@@ -375,8 +357,6 @@ router.post(
     "profilePicture"
   ),
   async (req, res) => {
-    let savedFilePath = null;
-
     try {
       if (!req.file) {
         return res.status(400).json({
@@ -397,91 +377,16 @@ router.post(
         });
       }
 
-      // =================================================
-      // ALLOWED IMAGE TYPES
-      // =================================================
+      const upload = await uploadBuffer(req.file.buffer, {
+        folder: "multilingual-chat/profiles",
+        resourceType: "image",
+        publicId: `user-${user._id}`,
+        overwrite: true,
+      });
 
-      const extensionMap = {
-        "image/jpeg": "jpg",
-        "image/png": "png",
-        "image/webp": "webp",
-        "image/gif": "gif",
-      };
-
-      const extension =
-        extensionMap[
-          req.file.mimetype
-        ];
-
-      if (!extension) {
-        return res.status(400).json({
-          message:
-            "Unsupported image type.",
-        });
-      }
-
-      // =================================================
-      // CREATE UNIQUE FILE NAME
-      // =================================================
-
-      const filename =
-        `${user._id}-${Date.now()}.${extension}`;
-
-      savedFilePath =
-        path.join(
-          profileUploadDirectory,
-          filename
-        );
-
-      // =================================================
-      // SAVE IMAGE
-      // =================================================
-
-      fs.writeFileSync(
-        savedFilePath,
-        req.file.buffer
-      );
-
-      const oldPicture =
-        user.profilePicture;
-
-      user.profilePicture =
-        `/uploads/profiles/${filename}`;
+      user.profilePicture = upload.secure_url;
 
       await user.save();
-
-      // =================================================
-      // DELETE OLD IMAGE
-      // =================================================
-
-      if (
-        oldPicture &&
-        oldPicture.startsWith(
-          "/uploads/profiles/"
-        )
-      ) {
-        const oldFilePath =
-          path.join(
-            __dirname,
-            "..",
-            oldPicture
-          );
-
-        if (
-          fs.existsSync(oldFilePath)
-        ) {
-          try {
-            fs.unlinkSync(
-              oldFilePath
-            );
-          } catch (deleteError) {
-            console.error(
-              "[PROFILE] Failed to delete old profile image:",
-              deleteError
-            );
-          }
-        }
-      }
 
       // =================================================
       // LOAD UPDATED USER
@@ -526,24 +431,6 @@ router.post(
         error
       );
 
-      // Remove newly saved file if the
-      // database update failed.
-      if (
-        savedFilePath &&
-        fs.existsSync(savedFilePath)
-      ) {
-        try {
-          fs.unlinkSync(
-            savedFilePath
-          );
-        } catch (cleanupError) {
-          console.error(
-            "[PROFILE] Failed to clean up uploaded file:",
-            cleanupError
-          );
-        }
-      }
-
       return res.status(500).json({
         message:
           error?.message ||
@@ -575,46 +462,10 @@ router.delete(
         });
       }
 
-      const oldPicture =
-        user.profilePicture;
-
       user.profilePicture =
         null;
 
       await user.save();
-
-      // =================================================
-      // DELETE OLD IMAGE
-      // =================================================
-
-      if (
-        oldPicture &&
-        oldPicture.startsWith(
-          "/uploads/profiles/"
-        )
-      ) {
-        const filePath =
-          path.join(
-            __dirname,
-            "..",
-            oldPicture
-          );
-
-        if (
-          fs.existsSync(filePath)
-        ) {
-          try {
-            fs.unlinkSync(
-              filePath
-            );
-          } catch (deleteError) {
-            console.error(
-              "[PROFILE] Failed to delete profile image:",
-              deleteError
-            );
-          }
-        }
-      }
 
       // =================================================
       // LOAD UPDATED USER

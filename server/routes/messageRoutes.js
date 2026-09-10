@@ -1,8 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const fs = require("fs");
-const path = require("path");
 const multer = require("multer");
+const { uploadBuffer } = require("../utils/cloudinary");
 
 const router = express.Router();
 
@@ -18,33 +17,8 @@ const Friendship =
 const authMiddleware =
   require("../middleware/authMiddleware");
 
-const audioDirectory = path.join(
-  __dirname,
-  "..",
-  "uploads",
-  "audio"
-);
-
-fs.mkdirSync(audioDirectory, {
-  recursive: true,
-});
-
 const audioUpload = multer({
-  storage: multer.diskStorage({
-    destination: audioDirectory,
-    filename: (req, file, callback) => {
-      const extension =
-        path.extname(file.originalname) ||
-        ".webm";
-
-      callback(
-        null,
-        `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2)}${extension}`
-      );
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024,
   },
@@ -63,17 +37,6 @@ const audioUpload = multer({
       allowedTypes.includes(file.mimetype)
     );
   },
-});
-
-const attachmentDirectory = path.join(
-  __dirname,
-  "..",
-  "uploads",
-  "attachments"
-);
-
-fs.mkdirSync(attachmentDirectory, {
-  recursive: true,
 });
 
 const allowedAttachmentTypes = [
@@ -102,18 +65,7 @@ const allowedAttachmentTypes = [
 ];
 
 const attachmentUpload = multer({
-  storage: multer.diskStorage({
-    destination: attachmentDirectory,
-    filename: (req, file, callback) => {
-      const extension = path.extname(file.originalname) || "";
-      callback(
-        null,
-        `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2)}${extension}`
-      );
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 25 * 1024 * 1024,
   },
@@ -165,10 +117,19 @@ router.post(
           });
         }
 
-        return res.status(201).json({
-          attachmentUrl:
-            `/uploads/audio/${req.file.filename}`,
-        });
+        uploadBuffer(req.file.buffer, {
+          folder: "multilingual-chat/audio",
+          resourceType: "auto",
+        })
+          .then((upload) => res.status(201).json({
+            attachmentUrl: upload.secure_url,
+          }))
+          .catch((uploadError) => {
+            console.error("[AUDIO CLOUDINARY UPLOAD ERROR]", uploadError);
+            return res.status(502).json({
+              message: "Audio could not be stored in Cloudinary.",
+            });
+          });
       }
     );
   }
@@ -205,13 +166,22 @@ router.post(
               ? "video"
               : "file";
 
-        return res.status(201).json({
-          attachmentUrl:
-            `/uploads/attachments/${req.file.filename}`,
-          attachmentName: req.file.originalname,
-          attachmentMimeType: mimeType,
-          messageType,
-        });
+        uploadBuffer(req.file.buffer, {
+          folder: "multilingual-chat/attachments",
+          resourceType: "auto",
+        })
+          .then((upload) => res.status(201).json({
+            attachmentUrl: upload.secure_url,
+            attachmentName: req.file.originalname,
+            attachmentMimeType: mimeType,
+            messageType,
+          }))
+          .catch((uploadError) => {
+            console.error("[ATTACHMENT CLOUDINARY UPLOAD ERROR]", uploadError);
+            return res.status(502).json({
+              message: "Attachment could not be stored in Cloudinary.",
+            });
+          });
       }
     );
   }
