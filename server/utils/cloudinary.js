@@ -1,16 +1,31 @@
 const cloudinary = require("cloudinary").v2;
 
+const readEnv = (...names) => {
+  for (const name of names) {
+    const value = String(process.env[name] || "").trim();
+    if (value) {
+      return value;
+    }
+  }
+
+  return "";
+};
+
+const cloudName = readEnv("CLOUDINARY_CLOUD_NAME", "CLOUD_NAME");
+const apiKey = readEnv("CLOUDINARY_API_KEY", "CLOUD_API_KEY");
+const apiSecret = readEnv("CLOUDINARY_API_SECRET", "CLOUD_API_SECRET");
+
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: cloudName,
+  api_key: apiKey,
+  api_secret: apiSecret,
   secure: true,
 });
 
 const hasCloudinaryConfig = () => Boolean(
-  process.env.CLOUDINARY_CLOUD_NAME &&
-  process.env.CLOUDINARY_API_KEY &&
-  process.env.CLOUDINARY_API_SECRET
+  cloudName &&
+  apiKey &&
+  apiSecret
 );
 
 const uploadBuffer = (
