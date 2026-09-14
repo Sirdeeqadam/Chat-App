@@ -24,7 +24,10 @@ const readStateRoutes = require("./routes/readStateRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const friendRoutes = require("./routes/friendRoutes");
 const searchRoutes = require("./routes/searchRoutes");
-const { sendEmail } = require("./utils/sendEmail");
+const {
+  sendEmail,
+  getEmailConfigStatus,
+} = require("./utils/sendEmail");
 
 // =========================================================
 // SOCKET & MIDDLEWARE
@@ -145,6 +148,7 @@ app.get("/api/health", (req, res) => {
   return res.status(200).json({
     status: "ok",
     message: "Server is running",
+    smtp: getEmailConfigStatus(),
     mongodb: states[mongoState] || "unknown",
     socket: io.engine ? "available" : "unavailable",
     timestamp: new Date().toISOString(),

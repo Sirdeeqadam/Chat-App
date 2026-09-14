@@ -22,6 +22,16 @@ const smtpPort = Number(process.env.SMTP_PORT) || 465;
 const smtpSecure = smtpPort === 465;
 const emailFrom = process.env.SMTP_FROM || `"Multilingual Chat" <${emailUser}>`;
 
+const getEmailConfigStatus = () => ({
+  configured: Boolean(emailUser && emailPass),
+  userConfigured: Boolean(emailUser),
+  passwordConfigured: Boolean(emailPass),
+  host: smtpHost,
+  port: smtpPort,
+  secure: smtpSecure,
+  fromConfigured: Boolean(emailFrom),
+});
+
 const createTransporter = async () => {
   if (!emailUser || !emailPass) {
     throw new Error(
@@ -52,4 +62,4 @@ const sendEmail = async ({ to, subject, html, text }) => {
   return info;
 };
 
-module.exports = { sendEmail };
+module.exports = { sendEmail, getEmailConfigStatus };
