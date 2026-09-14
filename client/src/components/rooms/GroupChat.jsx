@@ -13,6 +13,7 @@ import {
 import FileAttachmentPicker from "../FileAttachmentPicker";
 import VoiceRecorder from "../VoiceRecorder";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
+import VideoMessagePlayer from "../VideoMessagePlayer";
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
@@ -1098,11 +1099,8 @@ const GroupChat = ({
                     />
                   ) : msg.messageType === "video" &&
                     msg.attachmentUrl ? (
-                    <video
-                      controls
-                      src={getAudioUrl(
-                        msg.attachmentUrl
-                      )}
+                    <VideoMessagePlayer
+                      src={getAudioUrl(msg.attachmentUrl)}
                     />
                   ) : msg.messageType === "image" &&
                     msg.attachmentUrl ? (
@@ -1190,6 +1188,12 @@ const GroupChat = ({
                   {/* META */}
 
                   <div className="message-meta">
+                    {(msg.messageType === "audio" &&
+                      msg.attachmentUrl &&
+                      msg.attachmentMimeType?.startsWith("audio/")) && (
+                      <span className="audio-attachment-tag">AUD</span>
+                    )}
+
                     {formatTime(
                       msg.createdAt
                     )}

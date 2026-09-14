@@ -24,6 +24,8 @@ const api = axios.create({
   baseURL,
   // Increased from 15s to 60s to prevent timeouts during Render free-tier cold starts
   timeout: 60000,
+  maxContentLength: 100 * 1024 * 1024,
+  maxBodyLength: 100 * 1024 * 1024,
 });
 
 if (import.meta.env.PROD && !import.meta.env.VITE_API_URL) {

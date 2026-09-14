@@ -95,8 +95,8 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "100mb" }));
+app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 
 // Static uploads route
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -117,7 +117,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
-  maxHttpBufferSize: 1e6,
+  maxHttpBufferSize: 100 * 1024 * 1024,
 });
 
 app.set("io", io);

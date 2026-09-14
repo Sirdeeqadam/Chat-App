@@ -24,6 +24,7 @@ import LanguageSelector from "../components/LanguageSelector";
 import AddFriendsPicker from "../components/AddFriendsPicker";
 import VoiceRecorder from "../components/VoiceRecorder";
 import VoiceMessagePlayer from "../components/VoiceMessagePlayer";
+import VideoMessagePlayer from "../components/VideoMessagePlayer";
 import FileAttachmentPicker from "../components/FileAttachmentPicker";
 
 import {
@@ -5057,11 +5058,8 @@ const Chat = () => {
                             />
                           ) : msg.messageType === "video" &&
                             msg.attachmentUrl ? (
-                            <video
-                              controls
-                              src={getImageUrl(
-                                msg.attachmentUrl
-                              )}
+                            <VideoMessagePlayer
+                              src={getImageUrl(msg.attachmentUrl)}
                             />
                           ) : msg.messageType === "image" &&
                             msg.attachmentUrl ? (
@@ -5097,6 +5095,12 @@ const Chat = () => {
                           )}
 
                           <div className="message-meta">
+                            {(msg.messageType === "audio" &&
+                              msg.attachmentUrl &&
+                              msg.attachmentMimeType?.startsWith("audio/")) && (
+                              <span className="audio-attachment-tag">AUD</span>
+                            )}
+
                             <small className="message-time">
                               {msg.createdAt
                                 ? new Date(

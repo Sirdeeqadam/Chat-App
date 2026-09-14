@@ -17,10 +17,13 @@ const Friendship =
 const authMiddleware =
   require("../middleware/authMiddleware");
 
+const MAX_AUDIO_SIZE = 50 * 1024 * 1024;
+const MAX_ATTACHMENT_SIZE = 100 * 1024 * 1024;
+
 const audioUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024,
+    fileSize: MAX_AUDIO_SIZE,
   },
   fileFilter: (req, file, callback) => {
     const allowedTypes = [
@@ -67,7 +70,7 @@ const allowedAttachmentTypes = [
 const attachmentUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 25 * 1024 * 1024,
+    fileSize: MAX_ATTACHMENT_SIZE,
   },
   fileFilter: (req, file, callback) => {
     callback(

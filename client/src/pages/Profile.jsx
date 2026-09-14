@@ -442,13 +442,13 @@ const Profile = () => {
       }
 
       const maxSize =
-        5 * 1024 * 1024;
+        10 * 1024 * 1024;
 
       if (
         file.size > maxSize
       ) {
         setError(
-          "Profile picture must be 5 MB or smaller."
+          "Profile picture must be 10 MB or smaller."
         );
 
         event.target.value =

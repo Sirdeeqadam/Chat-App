@@ -25,6 +25,15 @@
 const {
   translate,
 } = require("@vitalets/google-translate-api");
+const axios = require("axios");
+
+const LIBRETRANSLATE_URL = String(
+  process.env.LIBRETRANSLATE_URL || ""
+).trim().replace(/\/+$/, "");
+const LIBRETRANSLATE_API_KEY = String(
+  process.env.LIBRETRANSLATE_API_KEY || ""
+).trim();
+const TRANSLATION_TIMEOUT = 12000;
 
 // =========================================================
 // LANGUAGE CODES
@@ -104,6 +113,49 @@ function isSupportedLanguage(language) {
   }
 }
 
+async function translateWithLibreTranslate(text, source, target) {
+  if (!LIBRETRANSLATE_URL) {
+    return null;
+  }
+
+  const response = await axios.post(
+    `${LIBRETRANSLATE_URL}/translate`,
+    {
+      q: text,
+      source,
+      target,
+      format: "text",
+      ...(LIBRETRANSLATE_API_KEY
+        ? { api_key: LIBRETRANSLATE_API_KEY }
+        : {}),
+    },
+    { timeout: TRANSLATION_TIMEOUT }
+  );
+
+  const translatedText = response.data?.translatedText;
+  return typeof translatedText === "string" && translatedText.trim()
+    ? translatedText.trim()
+    : null;
+}
+
+async function translateWithMyMemory(text, source, target) {
+  const response = await axios.get(
+    "https://api.mymemory.translated.net/get",
+    {
+      params: {
+        q: text,
+        langpair: `${source}|${target}`,
+      },
+      timeout: TRANSLATION_TIMEOUT,
+    }
+  );
+
+  const translatedText = response.data?.responseData?.translatedText;
+  return typeof translatedText === "string" && translatedText.trim()
+    ? translatedText.trim()
+    : null;
+}
+
 // =========================================================
 // TRANSLATE TEXT
 // =========================================================
@@ -166,16 +218,34 @@ async function translateText(
   // -------------------------------------------------------
 
   try {
-    const result = await translate(
-      originalText,
-      {
-        from: source,
-        to: target,
-      }
-    );
+    const providers = [
+      ["LibreTranslate", () => translateWithLibreTranslate(originalText, source, target)],
+      ["MyMemory", () => translateWithMyMemory(originalText, source, target)],
+      ["Google Translate", async () => {
+        const result = await translate(originalText, {
+          from: source,
+          to: target,
+        });
+        return result?.text;
+      }],
+    ];
 
-    const translatedText =
-      result?.text;
+    let translatedText = null;
+
+    for (const [provider, translateWithProvider] of providers) {
+      try {
+        translatedText = await translateWithProvider();
+        if (translatedText) {
+          console.log(`[TRANSLATION] Provider: ${provider}`);
+          break;
+        }
+      } catch (error) {
+        console.warn(
+          `[TRANSLATION] ${provider} failed ${source} -> ${target}:`,
+          error.message
+        );
+      }
+    }
 
     // -----------------------------------------------------
     // Validate response
@@ -185,9 +255,7 @@ async function translateText(
       typeof translatedText !== "string" ||
       !translatedText.trim()
     ) {
-      console.error(
-        "[TRANSLATION] Invalid translation response."
-      );
+      console.error("[TRANSLATION] All providers failed.");
 
       return originalText;
     }
