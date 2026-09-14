@@ -21,8 +21,7 @@ const getEmailPassword = () =>
 
 const getSmtpHost = () => process.env.SMTP_HOST || "smtp.gmail.com";
 const getSmtpPort = () => Number(process.env.SMTP_PORT) || 465;
-const getSmtpSecure = () =>
-  String(process.env.SMTP_SECURE ?? "true").toLowerCase() === "true";
+const getSmtpSecure = (port) => port === 465;
 const getSmtpFrom = () =>
   process.env.SMTP_FROM || `"Multilingual Chat" <${getEmailUser()}>`;
 
@@ -34,12 +33,13 @@ const sendSmtpEmail = async ({ to, subject, text, html }) => {
   }
 
   const host = getSmtpHost();
+  const port = getSmtpPort();
+  const { address } = await dns.promises.lookup(host, { family: 4 });
   const info = await nodemailer.createTransport({
-    host,
-    port: getSmtpPort(),
-    secure: getSmtpSecure(),
+    host: address,
+    port,
+    secure: getSmtpSecure(port),
     auth: { user: getEmailUser(), pass: getEmailPassword() },
-    family: 4,
     tls: { servername: host },
     connectionTimeout: 10000,
     greetingTimeout: 5000,
