@@ -6,6 +6,7 @@ const LanguageSelector = () => {
     language,
     changeLanguage,
     loading,
+    t,
   } = useLanguage();
 
   const [open, setOpen] = useState(false);
@@ -45,7 +46,7 @@ const LanguageSelector = () => {
         className="translator-button"
         onClick={() => setOpen(!open)}
         disabled={loading}
-        title={`Language: ${language}`}
+        title={`${t.language}: ${language}`}
       >
         <svg
           className="translator-icon"
@@ -63,7 +64,7 @@ const LanguageSelector = () => {
       {open && (
         <div className="language-menu">
           <div className="language-menu-title">
-            Language
+            {t.language}
           </div>
 
           {languages.map((item) => (

@@ -14,6 +14,7 @@ import FileAttachmentPicker from "../FileAttachmentPicker";
 import VoiceRecorder from "../VoiceRecorder";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
+import { useLanguage } from "../../context/LanguageContext";
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
@@ -50,6 +51,7 @@ const GroupChat = ({
   room,
   currentUser,
 }) => {
+  const { t } = useLanguage();
   // =====================================================
   // STATE
   // =====================================================
@@ -957,21 +959,21 @@ const GroupChat = ({
             )
               ? room.members.length
               : 0}{" "}
-            member
+            {t.member}
             {Array.isArray(
               room.members
             ) &&
             room.members.length ===
               1
               ? ""
-              : "s"}
+              : t.membersSuffix}
           </span>
         </div>
 
         {room.code && (
           <div className="group-room-code">
             <small>
-              Room Code
+              {t.roomCodeLabel}
             </small>
 
             <strong>
@@ -1010,18 +1012,17 @@ const GroupChat = ({
 
         {loading ? (
           <div className="group-chat-loading">
-            Loading messages...
+            {t.loadingMessages}
           </div>
         ) : messages.length ===
           0 ? (
           <div className="group-chat-empty">
             <p>
-              No messages yet.
+              {t.noMessages}.
             </p>
 
             <span>
-              Start the
-              conversation.
+              {t.startConversation}.
             </span>
           </div>
         ) : (
@@ -1110,7 +1111,7 @@ const GroupChat = ({
                       )}
                       alt={
                         msg.attachmentName ||
-                        "Shared image"
+                        t.sharedImage
                       }
                       className="message-attachment-image"
                     />
@@ -1124,7 +1125,7 @@ const GroupChat = ({
                     >
                       {msg.attachmentName ||
                         msg.message ||
-                        "Download attachment"}
+                        t.downloadAttachment}
                     </a>
                   ) : (
                     <p className="message-text">
@@ -1137,7 +1138,7 @@ const GroupChat = ({
                   {wasTranslated && (
                     <div className="message-translation">
                       <small>
-                        Translated
+                        {t.translated}
                         {displayLanguage
                           ? ` • ${displayLanguage}`
                           : ""}
@@ -1154,7 +1155,7 @@ const GroupChat = ({
                       displayMessage && (
                       <div className="message-original">
                         <small>
-                          Original:
+                          {t.original}
                         </small>
 
                         <p>
@@ -1174,7 +1175,7 @@ const GroupChat = ({
                       originalMessage && (
                       <div className="message-translation-preview">
                         <small>
-                          Translation
+                          {t.translation}
                         </small>
 
                         <p>
@@ -1202,11 +1203,11 @@ const GroupChat = ({
                       <span className="message-status">
                         {msg.deliveryStatus ===
                         "read"
-                          ? "Read"
+                          ? t.readStatus
                           : msg.deliveryStatus ===
                               "delivered"
-                            ? "Delivered"
-                            : "Sent"}
+                            ? t.deliveredStatus
+                            : t.sentStatus}
                       </span>
                     )}
                   </div>
@@ -1258,7 +1259,7 @@ const GroupChat = ({
             onChange={
               handleTyping
             }
-            placeholder="Type a message..."
+            placeholder={t.typeMessage}
             disabled={
               !socket ||
               loading ||
@@ -1284,9 +1285,7 @@ const GroupChat = ({
             sending
           }
         >
-          {sending
-            ? "Sending..."
-            : "Send"}
+          {sending ? t.sending : t.send}
         </button>
       </form>
     </div>

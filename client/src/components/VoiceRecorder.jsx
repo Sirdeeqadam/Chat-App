@@ -1,12 +1,14 @@
 import { useRef, useState } from "react";
 
 import api from "../services/api";
+import { useLanguage } from "../context/LanguageContext";
 
 const VoiceRecorder = ({
   disabled = false,
   onSendVoice,
   onStarted,
 }) => {
+  const { t } = useLanguage();
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
@@ -28,7 +30,7 @@ const VoiceRecorder = ({
     setError("");
 
     if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-      setError("Voice recording is not supported in this browser.");
+      setError(t.voiceRecordingUnsupported);
       return;
     }
 
@@ -58,7 +60,7 @@ const VoiceRecorder = ({
         setRecording(false);
 
         if (!blob.size) {
-          setError("No audio was recorded.");
+          setError(t.noAudioRecorded);
           return;
         }
 
@@ -76,7 +78,7 @@ const VoiceRecorder = ({
           const attachmentUrl = response.data?.attachmentUrl;
 
           if (!attachmentUrl) {
-            throw new Error("The server did not return an audio URL.");
+            throw new Error(t.missingAudioUrl);
           }
 
           await onSendVoice(attachmentUrl);
@@ -84,7 +86,7 @@ const VoiceRecorder = ({
           setError(
             uploadError.response?.data?.message ||
               uploadError.message ||
-              "Failed to upload voice message."
+              t.failedVoiceUpload
           );
         } finally {
           setSending(false);
@@ -98,8 +100,8 @@ const VoiceRecorder = ({
       stopStream();
       setError(
         recordingError.name === "NotAllowedError"
-          ? "Microphone permission was denied."
-          : "Unable to access the microphone."
+          ? t.microphonePermissionDenied
+          : t.microphoneUnavailable
       );
     }
   };
@@ -119,8 +121,8 @@ const VoiceRecorder = ({
         className={recording ? "voice-record-button recording" : "voice-record-button"}
         disabled={disabled || sending}
         onClick={recording ? stopRecording : startRecording}
-        title={recording ? "Stop recording" : "Record voice message"}
-        aria-label={recording ? "Stop recording" : "Record voice message"}
+        title={recording ? t.stopRecording : t.recordVoiceMessage}
+        aria-label={recording ? t.stopRecording : t.recordVoiceMessage}
       >
         {sending ? (
           <span aria-hidden="true">...</span>

@@ -1,11 +1,13 @@
 import { useRef, useState } from "react";
 
 import api from "../services/api";
+import { useLanguage } from "../context/LanguageContext";
 
 const FileAttachmentPicker = ({
   disabled = false,
   onSendAttachment,
 }) => {
+  const { t } = useLanguage();
   const imageInputRef = useRef(null);
   const audioInputRef = useRef(null);
   const videoInputRef = useRef(null);
@@ -44,7 +46,7 @@ const FileAttachmentPicker = ({
       setError(
         uploadError.response?.data?.message ||
           uploadError.message ||
-          "Failed to upload attachment."
+          t.uploadFailed || "Failed to upload attachment."
       );
     } finally {
       setUploading(false);
@@ -95,8 +97,8 @@ const FileAttachmentPicker = ({
         className="file-attachment-button"
         disabled={disabled || uploading}
         onClick={() => setOpen((previous) => !previous)}
-        title="Add attachment"
-        aria-label="Add attachment"
+        title={t.attachment}
+        aria-label={t.attachment}
       >
         {uploading ? "..." : <span className="attachment-plus">+</span>}
       </button>
@@ -108,7 +110,7 @@ const FileAttachmentPicker = ({
             disabled={disabled}
             onClick={() => openPicker(imageInputRef)}
           >
-            Image
+            {t.image}
           </button>
 
           <button
@@ -116,7 +118,7 @@ const FileAttachmentPicker = ({
             disabled={disabled}
             onClick={() => openPicker(audioInputRef)}
           >
-            Audio
+            {t.audio}
           </button>
 
           <button
@@ -124,7 +126,7 @@ const FileAttachmentPicker = ({
             disabled={disabled}
             onClick={() => openPicker(videoInputRef)}
           >
-            Video
+            {t.video}
           </button>
 
           <button
@@ -132,7 +134,7 @@ const FileAttachmentPicker = ({
             disabled={disabled}
             onClick={() => openPicker(documentInputRef)}
           >
-            Document
+            {t.document}
           </button>
         </div>
       )}

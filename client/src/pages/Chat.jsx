@@ -3819,14 +3819,14 @@ const Chat = () => {
             onClick={() =>
               navigate("/profile")
             }
-            title="My Profile"
+              title={t.profile || "My Profile"}
           >
             {profileImage ? (
               <img
                 src={profileImage}
                 alt={
                   user?.username ||
-                  "Profile"
+                  t.profile || "Profile"
                 }
                 className="profile-header-image"
               />
@@ -3868,8 +3868,8 @@ const Chat = () => {
                 });
                 setUserSearch("");
               }}
-              title="Search"
-              aria-label="Search"
+              title={t.search}
+              aria-label={t.search}
               aria-expanded={searchOpen}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -3885,9 +3885,9 @@ const Chat = () => {
                 name="user-search"
                 value={userSearch}
                 onChange={(event) => setUserSearch(event.target.value)}
-                placeholder="Search"
+                placeholder={t.search}
                 autoFocus
-                aria-label="Search"
+                aria-label={t.search}
               />
             </div>
           )}
@@ -3895,12 +3895,12 @@ const Chat = () => {
           {searchOpen && normalizedUserSearch.length >= 2 && (
             <div className="global-search-results">
               {globalSearchLoading ? (
-                <p className="global-search-empty">Searching...</p>
+                <p className="global-search-empty">{t.searching}</p>
               ) : (
                 <>
                   {globalSearchResults.friends.length > 0 && (
                     <section>
-                      <h4>Friends</h4>
+                      <h4>{t.friends}</h4>
                       {globalSearchResults.friends.map((friend) => (
                         <button type="button" className="global-search-result" key={friend._id} onClick={() => {
                           selectUser(friend);
@@ -3916,7 +3916,7 @@ const Chat = () => {
 
                   {globalSearchResults.groups.length > 0 && (
                     <section>
-                      <h4>Groups</h4>
+                      <h4>{t.groups}</h4>
                       {globalSearchResults.groups.map((group) => (
                         <button type="button" className="global-search-result" key={group._id} onClick={() => {
                           openRoom(group);
@@ -3932,7 +3932,7 @@ const Chat = () => {
 
                   {globalSearchResults.messages.length > 0 && (
                     <section>
-                      <h4>Messages</h4>
+                      <h4>{t.messages}</h4>
                       {globalSearchResults.messages.map((result) => (
                         <button type="button" className="global-search-result" key={result._id} onClick={() => {
                           if (result.roomId) {
@@ -3945,8 +3945,8 @@ const Chat = () => {
                           setSearchOpen(false);
                           setUserSearch("");
                         }}>
-                          <strong>{result.message || result.attachmentName || "Attachment"}</strong>
-                          <span>{result.sender?.username || "Message"}</span>
+                          <strong>{result.message || result.attachmentName || t.attachment}</strong>
+                          <span>{result.sender?.username || t.messages}</span>
                         </button>
                       ))}
                     </section>
@@ -3954,18 +3954,18 @@ const Chat = () => {
 
                   {globalSearchResults.links.length > 0 && (
                     <section>
-                      <h4>Links</h4>
+                      <h4>{t.links}</h4>
                       {globalSearchResults.links.map((link) => (
                         <a className="global-search-result" href={link.url} target="_blank" rel="noreferrer" key={link.id}>
                           <strong>{link.url}</strong>
-                          <span>Open link</span>
+                          <span>{t.openLink}</span>
                         </a>
                       ))}
                     </section>
                   )}
 
                   {!globalSearchResults.friends.length && !globalSearchResults.groups.length && !globalSearchResults.messages.length && !globalSearchResults.links.length && (
-                    <p className="global-search-empty">No results found.</p>
+                    <p className="global-search-empty">{t.noResults}</p>
                   )}
                 </>
               )}
@@ -3999,8 +3999,8 @@ const Chat = () => {
               onClick={() =>
                 setMobileMenuOpen((previous) => !previous)
               }
-              title="More options"
-              aria-label="More options"
+              title={t.moreOptions || "More options"}
+              aria-label={t.moreOptions || "More options"}
               aria-expanded={mobileMenuOpen}
             >
               <span aria-hidden="true">&#8942;</span>
@@ -4079,7 +4079,7 @@ const Chat = () => {
                   <path d="M7 10h10M7 13.5h6" />
                 </svg>
               </span>
-              <span>Chats</span>
+              <span>{t.chats}</span>
             </span>
 
             {totalPrivateUnread >
@@ -4140,7 +4140,7 @@ const Chat = () => {
                   <path d="M3.5 18a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.8M16 13a5 5 0 0 1 4.5 5" />
                 </svg>
               </span>
-              <span>Rooms</span>
+              <span>{t.rooms}</span>
             </span>
 
             {totalRoomUnread >
@@ -4180,7 +4180,7 @@ const Chat = () => {
                   <path d="M6.6 3.2 9 2.5l2 4.8-1.8 1.5a14.7 14.7 0 0 0 5.9 5.9l1.5-1.8 4.8 2-.7 2.4c-.3 1.1-1.5 1.7-2.6 1.3A18.5 18.5 0 0 1 5.2 5.8c-.4-1.1.3-2.3 1.4-2.6Z" />
                 </svg>
               </span>
-              <span>Calls</span>
+              <span>{t.calls}</span>
             </span>
 
             {callHistory.length > 0 && (
@@ -4205,11 +4205,11 @@ const Chat = () => {
 
               <div className="sidebar-title-left">
                 <h3>
-                  Chats
+                  {t.chats}
                 </h3>
 
                 <p>
-                  Recent messages
+                  {t.recentMessages || t.messages}
                 </p>
               </div>
 
@@ -4316,7 +4316,7 @@ const Chat = () => {
                           <small>
                             {isOnline
                               ? t.online
-                              : "Offline"}
+                              : t.offline}
                           </small>
 
                         </span>
@@ -4353,12 +4353,11 @@ const Chat = () => {
 
               <div>
                 <h3>
-                  Rooms
+                  {t.rooms}
                 </h3>
 
                 <p>
-                  Create or join
-                  rooms
+                  {t.createOrJoin}
                 </p>
               </div>
 
@@ -4367,7 +4366,7 @@ const Chat = () => {
                 <button
                   type="button"
                   className="join-room-icon"
-                  title="Join Room"
+                  title={t.joinRoom}
                   onClick={() => {
                     setShowJoinRoom(true);
                     setShowCreateRoom(false);
@@ -4380,7 +4379,7 @@ const Chat = () => {
                 <button
                   type="button"
                   className="create-room-icon"
-                  title="Create Room"
+                  title={t.createRoom}
                   onClick={() => {
                     setShowCreateRoom(true);
                     setShowJoinRoom(false);
@@ -4407,7 +4406,7 @@ const Chat = () => {
                 <input
                   type="text"
                   name="room-name"
-                  placeholder="Room name..."
+                  placeholder={`${t.roomName}...`}
                   value={roomName}
                   maxLength={50}
                   autoFocus
@@ -4420,7 +4419,7 @@ const Chat = () => {
 
                 <textarea
                   name="room-description"
-                  placeholder="Room description (optional)..."
+                  placeholder={t.roomDescription}
                   value={roomDescription}
                   maxLength={500}
                   rows={3}
@@ -4445,8 +4444,8 @@ const Chat = () => {
                     }
                   >
                     {roomLoading
-                      ? "Creating..."
-                      : "Create"}
+                      ? t.creating
+                      : t.create}
                   </button>
 
                   <button
@@ -4457,7 +4456,7 @@ const Chat = () => {
                         setRoomDescription("");
                     }}
                   >
-                    Cancel
+                    {t.cancel}
                   </button>
 
                 </div>
@@ -4478,7 +4477,7 @@ const Chat = () => {
                 <input
                   type="text"
                   name="room-code"
-                  placeholder="6-character room code"
+                  placeholder={t.roomCode}
                   value={roomCode}
                   maxLength={6}
                   autoFocus
@@ -4504,8 +4503,8 @@ const Chat = () => {
                     }
                   >
                     {roomLoading
-                      ? "Joining..."
-                      : "Join"}
+                      ? t.joining
+                      : t.join}
                   </button>
 
                   <button
@@ -4515,7 +4514,7 @@ const Chat = () => {
                       setRoomCode("");
                     }}
                   >
-                    Cancel
+                    {t.cancel}
                   </button>
 
                 </div>
@@ -4535,7 +4534,7 @@ const Chat = () => {
               rooms.length ===
                 0 ? (
                 <p className="room-empty">
-                  Loading rooms...
+                  {t.loading}
                 </p>
               ) : rooms.length ===
                 0 ? (
@@ -4546,8 +4545,7 @@ const Chat = () => {
                   </div>
 
                   <p>
-                    No rooms
-                    available.
+                    {t.noRoomsShort}
                   </p>
 
                 </div>
@@ -4613,7 +4611,7 @@ const Chat = () => {
                             <small>
                               {room.members
                                 ?.length || 0}{" "}
-                              members
+                              {t.users.toLowerCase()}
                             </small>
 
                           </span>
@@ -4647,7 +4645,7 @@ const Chat = () => {
                                   )
                                 }
                               >
-                                Leave
+                                {t.leave}
                               </button>
                             )
                           ) : (
@@ -4663,7 +4661,7 @@ const Chat = () => {
                                 )
                               }
                             >
-                              Join
+                              {t.join}
                             </button>
                           )}
 
@@ -4684,8 +4682,8 @@ const Chat = () => {
           <div className="call-list-sidebar">
             <div className="call-list-title">
               <div>
-                <h3>Calls</h3>
-                <p>Recent audio and video calls</p>
+                <h3>{t.calls}</h3>
+                <p>{t.recentCalls}</p>
               </div>
 
               {callHistory.length > 0 && (
@@ -4693,8 +4691,8 @@ const Chat = () => {
                   type="button"
                   className="clear-call-history"
                   onClick={() => setCallHistory([])}
-                  title="Clear call history"
-                  aria-label="Clear call history"
+                  title={t.clearCallHistory}
+                  aria-label={t.clearCallHistory}
                 >
                   ×
                 </button>
@@ -4703,7 +4701,7 @@ const Chat = () => {
 
             {callHistory.length === 0 ? (
               <p className="call-list-empty">
-                No recent calls
+                {t.noRecentCalls || t.noResults}
               </p>
             ) : (
               <div className="call-history-list">
@@ -4735,7 +4733,7 @@ const Chat = () => {
                       <strong>{call.username}</strong>
                       <small>
                         {call.direction === "incoming" ? "↙" : "↗"}{" "}
-                        {call.type === "video" ? "Video call" : "Audio call"}
+                        {call.type === "video" ? t.videoCall : t.audioCall}
                       </small>
                     </span>
 
@@ -4788,8 +4786,8 @@ const Chat = () => {
                     setMessage("");
                     setSocketError("");
                   }}
-                  title="Back to chats"
-                  aria-label="Back to chats"
+                  title={t.backToChats}
+                  aria-label={t.backToChats}
                 >
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <path d="M15 18l-6-6 6-6" />
@@ -4834,7 +4832,7 @@ const Chat = () => {
                           )
                       )
                         ? t.online
-                        : "Offline"}
+                        : (t.offline || "Offline")}
                     </span>
 
                   </div>
@@ -4847,8 +4845,8 @@ const Chat = () => {
                     className="call-action-button"
                     onClick={() => startCall("audio")}
                     disabled={callStatus !== "idle"}
-                    title="Start audio call"
-                    aria-label="Start audio call"
+                    title={t.startAudioCall}
+                    aria-label={t.startAudioCall}
                   >
                     <svg
                       aria-hidden="true"
@@ -4864,8 +4862,8 @@ const Chat = () => {
                     className="call-action-button"
                     onClick={() => startCall("video")}
                     disabled={callStatus !== "idle"}
-                    title="Start video call"
-                    aria-label="Start video call"
+                    title={t.startVideoCall}
+                    aria-label={t.startVideoCall}
                   >
                     <svg
                       aria-hidden="true"
@@ -4885,10 +4883,10 @@ const Chat = () => {
                   {incomingCall && callStatus === "idle" ? (
                     <div className="incoming-call">
                       <strong>
-                        {incomingCall.username || "Someone"} is calling
+                        {incomingCall.username || t.someone} {t.isCalling}
                       </strong>
                       <span>
-                        Incoming {incomingCall.callType || "video"} call
+                        {t.incoming} {incomingCall.callType || t.video} {t.call}
                       </span>
                       <div className="incoming-call-actions">
                         <button
@@ -4896,14 +4894,14 @@ const Chat = () => {
                           className="call-accept-button"
                           onClick={acceptCall}
                         >
-                          Accept
+                          {t.accept}
                         </button>
                         <button
                           type="button"
                           className="call-reject-button"
                           onClick={rejectCall}
                         >
-                          Decline
+                          {t.decline}
                         </button>
                       </div>
                     </div>
@@ -4917,12 +4915,12 @@ const Chat = () => {
                           <span>
                             <strong>{selectedUser?.username || incomingCall?.username || "User"}</strong>
                             <small>
-                              {callStatus === "calling" ? "Calling" : "Connected"}
+                              {callStatus === "calling" ? t.calling : t.connected}
                             </small>
                           </span>
                         </div>
                         <span className="active-call-type">
-                          {callType === "video" ? "Video call" : "Voice call"}
+                          {callType === "video" ? t.videoCall : t.voiceCall}
                         </span>
                       </div>
 
@@ -4951,8 +4949,8 @@ const Chat = () => {
 
                       <div className="call-status-label">
                         {callStatus === "calling"
-                          ? "Calling..."
-                          : "Call connected"}
+                          ? t.callingEllipsis
+                          : t.callConnected}
                       </div>
 
                       <div className="active-call-actions">
@@ -4960,8 +4958,8 @@ const Chat = () => {
                           type="button"
                           onClick={toggleMute}
                           className={isMuted ? "active" : ""}
-                          title={isMuted ? "Unmute" : "Mute"}
-                          aria-label={isMuted ? "Unmute" : "Mute"}
+                          title={isMuted ? t.unmute : t.mute}
+                          aria-label={isMuted ? t.unmute : t.mute}
                         >
                           <span className="call-control-icon">
                             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -4969,7 +4967,7 @@ const Chat = () => {
                               <path d="M5 11a7 7 0 0 0 12.2 4.7M12 18v3M8 21h8M19 11v1a7 7 0 0 1-.2 1.6M5 5l14 14" />
                             </svg>
                           </span>
-                          <span>{isMuted ? "Unmute" : "Mute"}</span>
+                          <span>{isMuted ? t.unmute : t.mute}</span>
                         </button>
 
                         {callType === "video" && (
@@ -4977,8 +4975,8 @@ const Chat = () => {
                             type="button"
                             onClick={toggleCamera}
                             className={!cameraEnabled ? "active" : ""}
-                            title={cameraEnabled ? "Turn camera off" : "Turn camera on"}
-                            aria-label={cameraEnabled ? "Turn camera off" : "Turn camera on"}
+                            title={cameraEnabled ? t.turnCameraOff : t.turnCameraOn}
+                            aria-label={cameraEnabled ? t.turnCameraOff : t.turnCameraOn}
                           >
                             <span className="call-control-icon">
                               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -4986,7 +4984,7 @@ const Chat = () => {
                                 <path d="m15 10 6-3v10l-6-3Z" />
                               </svg>
                             </span>
-                            <span>{cameraEnabled ? "Camera" : "Camera off"}</span>
+                            <span>{cameraEnabled ? t.camera : t.cameraOff}</span>
                           </button>
                         )}
 
@@ -5000,7 +4998,7 @@ const Chat = () => {
                               <path d="M5 10.5a11 11 0 0 1 14 0l-1.6 3.2-3-1.1-.9-2.1a8 8 0 0 0-3 0l-.9 2.1-3 1.1Z" />
                             </svg>
                           </span>
-                          <span>End</span>
+                          <span>{t.end}</span>
                         </button>
                       </div>
                     </div>
@@ -5069,7 +5067,7 @@ const Chat = () => {
                               )}
                               alt={
                                 msg.attachmentName ||
-                                "Shared image"
+                                t.sharedImage
                               }
                               className="message-attachment-image"
                             />
@@ -5083,7 +5081,7 @@ const Chat = () => {
                             >
                               {msg.attachmentName ||
                                 msg.message ||
-                                "Download attachment"}
+                                t.downloadAttachment}
                             </a>
                           ) : (
                             <p>
@@ -5120,11 +5118,11 @@ const Chat = () => {
                               >
                                 {msg.deliveryStatus ===
                                 "read"
-                                  ? "✓✓ Read"
+                                  ? `✓✓ ${t.readStatus}`
                                   : msg.deliveryStatus ===
                                     "delivered"
-                                  ? "✓✓ Delivered"
-                                  : "✓ Sent"}
+                                  ? `✓✓ ${t.deliveredStatus}`
+                                  : `✓ ${t.sentStatus}`}
                               </small>
                             )}
                           </div>
@@ -5216,13 +5214,11 @@ const Chat = () => {
               </div>
 
               <h2>
-                Rooms
+                {t.roomEmptyTitle}
               </h2>
 
               <p>
-                Create a room,
-                join one, or select
-                an existing room.
+                {t.roomEmptyDescription}
               </p>
 
               <button
@@ -5233,7 +5229,7 @@ const Chat = () => {
                   setShowJoinRoom(false);
                 }}
               >
-                + Create Room
+                + {t.createRoom}
               </button>
 
             </div>
@@ -5258,7 +5254,7 @@ const Chat = () => {
                           ?.length ||
                         0
                       }{" "}
-                      members
+                      {t.members}
                     </span>
 
                     <button
@@ -5272,8 +5268,8 @@ const Chat = () => {
                       }
                     >
                       {showRoomMembers
-                        ? "Hide Members"
-                        : "View Members"}
+                        ? t.hideMembers
+                        : t.viewMembers}
                     </button>
 
                   </div>
@@ -5294,8 +5290,8 @@ const Chat = () => {
                       }
                     >
                       {roomActionLoading
-                        ? "Deleting..."
-                        : "Delete Room"}
+                        ? t.deleting
+                        : t.deleteRoom}
                     </button>
                   ) : (
                     <button
@@ -5311,7 +5307,7 @@ const Chat = () => {
                         )
                       }
                     >
-                      Leave Room
+                      {t.leaveRoom}
                     </button>
                   )}
 
@@ -5327,7 +5323,7 @@ const Chat = () => {
                   <div className="room-members-title">
 
                     <strong>
-                      Room Members
+                      {t.roomMembers}
                     </strong>
 
                     <span>
@@ -5345,8 +5341,7 @@ const Chat = () => {
                       .length ===
                     0 ? (
                       <p className="room-members-empty">
-                        No members
-                        found.
+                        {t.noMembers}
                       </p>
                     ) : (
                       getRoomMembers().map(
@@ -5418,15 +5413,15 @@ const Chat = () => {
                                   {isCurrentUser && (
                                     <span className="member-you">
                                       {" "}
-                                      You
+                                      {t.you}
                                     </span>
                                   )}
                                 </strong>
 
                                 <small>
                                   {isCreator
-                                    ? "Creator"
-                                    : "Member"}
+                                    ? t.creator
+                                    : t.member}
                                 </small>
 
                               </div>
@@ -5446,7 +5441,7 @@ const Chat = () => {
                                   <span>
                                     {online
                                       ? "Online"
-                                      : "Offline"}
+                                      : t.offline}
                                   </span>
 
                                 </div>
@@ -5468,7 +5463,7 @@ const Chat = () => {
                                     >
                                       {roomActionLoading
                                         ? "..."
-                                        : "Remove"}
+                                        : t.remove}
                                     </button>
                                   )}
 
@@ -5505,11 +5500,11 @@ const Chat = () => {
             </div>
 
             <p>
-              No messages yet.
+              {t.noMessages}
             </p>
 
             <small>
-              Be the first to say hello!
+              {t.beFirstToSayHello}
             </small>
 
           </div>

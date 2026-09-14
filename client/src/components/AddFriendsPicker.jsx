@@ -5,8 +5,10 @@ import {
   sendFriendRequest,
   respondToFriendRequest,
 } from "../services/friendService";
+import { useLanguage } from "../context/LanguageContext";
 
 const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestUpdated }) => {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
@@ -147,9 +149,9 @@ const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestU
   const getButtonContent = (user) => {
     switch (user.relationship) {
       case "friends":
-        return <span className="friend-status">Friends</span>;
+        return <span className="friend-status">{t.friends}</span>;
       case "outgoing":
-        return <span className="request-pending">Pending</span>;
+        return <span className="request-pending">{t.pending}</span>;
       case "incoming":
         return (
           <div className="request-action-group">
@@ -159,7 +161,7 @@ const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestU
               onClick={() => handleRespondRequest(user, "accept")}
               disabled={requestingUserId === user._id}
             >
-              {requestingUserId === user._id ? "..." : "Accept"}
+              {requestingUserId === user._id ? "..." : t.accept}
             </button>
             <button
               type="button"
@@ -167,7 +169,7 @@ const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestU
               onClick={() => handleRespondRequest(user, "decline")}
               disabled={requestingUserId === user._id}
             >
-              Decline
+              {t.decline}
             </button>
           </div>
         );
@@ -179,7 +181,7 @@ const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestU
             onClick={() => handleSendFriendRequest(user._id)}
             disabled={requestingUserId === user._id}
           >
-            {requestingUserId === user._id ? "..." : "Add"}
+            {requestingUserId === user._id ? "..." : t.add}
           </button>
         );
     }
@@ -206,8 +208,8 @@ const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestU
         type="button"
         className="add-friends-button"
         onClick={() => setOpen(!open)}
-        title="Add friends"
-        aria-label="Add friends"
+        title={t.addFriends}
+        aria-label={t.addFriends}
         aria-expanded={open}
       >
         <svg
@@ -232,12 +234,12 @@ const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestU
       {open && (
         <div className="add-friends-modal">
           <div className="add-friends-header">
-            <h3>Add Friends</h3>
+            <h3>{t.addFriends}</h3>
             <button
               type="button"
               className="close-modal-btn"
               onClick={() => setOpen(false)}
-              aria-label="Close"
+              aria-label={t.close}
             >
               ×
             </button>
@@ -246,11 +248,11 @@ const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestU
           <div className="add-friends-search-container">
             <input
               type="search"
-              placeholder="Search users..."
+              placeholder={`${t.search} ${t.users.toLowerCase()}...`}
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               autoFocus
-              aria-label="Search users"
+              aria-label={`${t.search} ${t.users}`}
             />
           </div>
 
@@ -258,7 +260,7 @@ const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestU
 
           <div className="add-friends-list">
             {loading ? (
-              <div className="add-friends-loading">Loading users...</div>
+              <div className="add-friends-loading">{t.loading} {t.users.toLowerCase()}...</div>
             ) : filteredUsers.length === 0 ? (
               <div className="add-friends-empty">
                 {searchQuery

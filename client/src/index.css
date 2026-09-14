@@ -2449,7 +2449,7 @@ button:disabled {
 }
 
 .video-message-player {
-  width: min(280px, 100%);
+  width: min(220px, 100%);
   overflow: hidden;
   border-radius: 6px;
   background: #111827;
@@ -2458,8 +2458,8 @@ button:disabled {
 .video-message-player > video {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: contain;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
   background: #111827;
   cursor: pointer;
 }
