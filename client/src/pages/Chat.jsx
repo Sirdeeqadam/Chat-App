@@ -105,12 +105,44 @@ const getInitial = (value) => {
 };
 
 const getUserId = (value) => {
-  return String(
-    value?._id ||
-      value?.id ||
-      value ||
-      ""
-  );
+  if (!value) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "object") {
+    return String(
+      value._id || value.id || ""
+    );
+  }
+
+  return String(value);
+};
+
+const getLocaleForLanguage = (selectedLanguage) => {
+  const localeMap = {
+    Hausa: "ha-NG",
+    French: "fr-FR",
+    Arabic: "ar-EG",
+    English: "en-US",
+  };
+
+  return localeMap[selectedLanguage] || "en-US";
+};
+
+const formatLocalizedNumber = (value, selectedLanguage) => {
+  const safeValue = Number(value ?? 0);
+
+  if (!Number.isFinite(safeValue)) {
+    return "0";
+  }
+
+  return new Intl.NumberFormat(
+    getLocaleForLanguage(selectedLanguage)
+  ).format(safeValue);
 };
 
 // =====================================================
@@ -124,7 +156,7 @@ const Chat = () => {
     logout,
   } = useAuth();
 
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
 
   const navigate = useNavigate();
 
@@ -2068,7 +2100,7 @@ const Chat = () => {
                     typingUserId,
                   username:
                     data.username ||
-                    "Someone",
+                    t.someone,
                 },
               ];
             }
@@ -2096,7 +2128,7 @@ const Chat = () => {
         setPrivateTypingUser(
           data.username ||
             selected.username ||
-            "Someone"
+            t.someone
         );
       };
 
@@ -2757,7 +2789,8 @@ const Chat = () => {
 
       if (!selectedUser) {
         setSocketError(
-          "Please select a user."
+          t.selectUserFirst ||
+            "Please select a user."
         );
 
         return;
@@ -2765,7 +2798,8 @@ const Chat = () => {
 
       if (!socket.connected) {
         setSocketError(
-          "Chat server is not connected."
+          t.chatServerDisconnected ||
+            "Chat server is not connected."
         );
 
         return;
@@ -2811,7 +2845,8 @@ const Chat = () => {
     async (attachmentUrl) => {
       if (!selectedUser || !socket.connected) {
         setSocketError(
-          "Chat server is not connected."
+          t.chatServerDisconnected ||
+            "Chat server is not connected."
         );
         return;
       }
@@ -2822,7 +2857,7 @@ const Chat = () => {
           receiver: String(
             selectedUser._id
           ),
-          message: "Voice message",
+          message: t.voiceMessage || "Voice message",
           messageType: "audio",
           attachmentUrl,
         }
@@ -2837,7 +2872,8 @@ const Chat = () => {
         !attachment?.attachmentUrl
       ) {
         setSocketError(
-          "Chat server is not connected."
+          t.chatServerDisconnected ||
+            "Chat server is not connected."
         );
         return;
       }
@@ -2850,7 +2886,9 @@ const Chat = () => {
           ),
           message:
             attachment.attachmentName ||
-            "Attachment",
+            (t.attachmentFallback ||
+              t.attachment ||
+              "Attachment"),
           messageType:
             attachment.messageType ||
             "file",
@@ -3687,7 +3725,8 @@ const Chat = () => {
     async (attachmentUrl) => {
       if (!selectedRoom || !socket.connected) {
         setSocketError(
-          "Chat server is not connected."
+          t.chatServerDisconnected ||
+            "Chat server is not connected."
         );
         return;
       }
@@ -3698,7 +3737,7 @@ const Chat = () => {
           roomId: String(
             selectedRoom._id
           ),
-          message: "Voice message",
+          message: t.voiceMessage || "Voice message",
           messageType: "audio",
           attachmentUrl,
         }
@@ -3713,7 +3752,8 @@ const Chat = () => {
         !attachment?.attachmentUrl
       ) {
         setSocketError(
-          "Chat server is not connected."
+          t.chatServerDisconnected ||
+            "Chat server is not connected."
         );
         return;
       }
@@ -3726,7 +3766,9 @@ const Chat = () => {
           ),
           message:
             attachment.attachmentName ||
-            "Attachment",
+            (t.attachmentFallback ||
+              t.attachment ||
+              "Attachment"),
           messageType:
             attachment.messageType ||
             "file",
@@ -3924,7 +3966,7 @@ const Chat = () => {
                           setUserSearch("");
                         }}>
                           <strong>{group.name}</strong>
-                          <span>{group.description || `${group.members?.length || 0} members`}</span>
+                          <span>{group.description || `${formatLocalizedNumber(group.members?.length || 0, language)} members`}</span>
                         </button>
                       ))}
                     </section>
@@ -4088,7 +4130,7 @@ const Chat = () => {
                 {totalPrivateUnread >
                 99
                   ? "99+"
-                  : totalPrivateUnread}
+                  : formatLocalizedNumber(totalPrivateUnread, language)}
               </span>
             )}
           </button>
@@ -4149,7 +4191,7 @@ const Chat = () => {
                 {totalRoomUnread >
                 99
                   ? "99+"
-                  : totalRoomUnread}
+                  : formatLocalizedNumber(totalRoomUnread, language)}
               </span>
             )}
           </button>
@@ -4187,7 +4229,7 @@ const Chat = () => {
               <span className="nav-unread-badge">
                 {callHistory.length > 99
                   ? "99+"
-                  : callHistory.length}
+                  : formatLocalizedNumber(callHistory.length, language)}
               </span>
             )}
           </button>
@@ -4327,7 +4369,7 @@ const Chat = () => {
                             {unreadCount >
                             99
                               ? "99+"
-                              : unreadCount}
+                              : formatLocalizedNumber(unreadCount, language)}
                           </span>
                         )}
 
@@ -4432,7 +4474,7 @@ const Chat = () => {
                 />
 
                 <small className="room-description-count">
-                  {roomDescription.length}/500
+                  {formatLocalizedNumber(roomDescription.length, language)}/500
                 </small>
 
                 <div className="create-room-actions">
@@ -4609,8 +4651,7 @@ const Chat = () => {
                             </strong>
 
                             <small>
-                              {room.members
-                                ?.length || 0}{" "}
+                              {formatLocalizedNumber(room.members?.length || 0, language)}{" "}
                               {t.users.toLowerCase()}
                             </small>
 
@@ -4622,7 +4663,7 @@ const Chat = () => {
                               {unreadCount >
                               99
                                 ? "99+"
-                                : unreadCount}
+                                : formatLocalizedNumber(unreadCount, language)}
                             </span>
                           )}
 
@@ -5101,9 +5142,13 @@ const Chat = () => {
 
                             <small className="message-time">
                               {msg.createdAt
-                                ? new Date(
-                                    msg.createdAt
-                                  ).toLocaleTimeString()
+                                ? new Intl.DateTimeFormat(
+                                    getLocaleForLanguage(language),
+                                    {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    }
+                                  ).format(new Date(msg.createdAt))
                                 : ""}
                             </small>
 

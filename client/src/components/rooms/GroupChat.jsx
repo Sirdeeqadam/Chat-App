@@ -51,7 +51,7 @@ const GroupChat = ({
   room,
   currentUser,
 }) => {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   // =====================================================
   // STATE
   // =====================================================
@@ -417,7 +417,7 @@ const GroupChat = ({
 
       const username =
         data.username ||
-        "Someone";
+        t.someone;
 
       setTypingUsers(
         (prev) => ({
@@ -749,7 +749,8 @@ const GroupChat = ({
       );
 
       setError(
-        "Failed to send message."
+        t.failedToSendMessage ||
+          "Failed to send message."
       );
     } finally {
       setSending(false);
@@ -760,7 +761,7 @@ const GroupChat = ({
     attachmentUrl
   ) => {
     if (!socket || !roomId) {
-      setError("Select a room first.");
+      setError(t.selectRoomFirst || "Select a room first.");
       return;
     }
 
@@ -768,7 +769,7 @@ const GroupChat = ({
       "send_message",
       {
         roomId,
-        message: "Voice message",
+        message: t.voiceMessage || "Voice message",
         messageType: "audio",
         attachmentUrl,
       }
@@ -779,7 +780,7 @@ const GroupChat = ({
     attachment
   ) => {
     if (!socket || !roomId || !attachment?.attachmentUrl) {
-      setError("Select a room first.");
+      setError(t.selectRoomFirst || "Select a room first.");
       return;
     }
 
@@ -789,7 +790,7 @@ const GroupChat = ({
         roomId,
         message:
           attachment.attachmentName ||
-          "Attachment",
+          (t.attachmentFallback || t.attachment || "Attachment"),
         messageType:
           attachment.messageType ||
           "file",
@@ -889,13 +890,40 @@ const GroupChat = ({
       return "";
     }
 
-    return date.toLocaleTimeString(
-      [],
+    const locale =
+      language === "Hausa"
+        ? "ha-NG"
+        : language === "French"
+          ? "fr-FR"
+          : language === "Arabic"
+            ? "ar-EG"
+            : "en-US";
+
+    return new Intl.DateTimeFormat(
+      locale,
       {
         hour: "2-digit",
         minute: "2-digit",
       }
-    );
+    ).format(date);
+  };
+
+  const formatLocalizedNumber = (value) => {
+    const safeValue = Number(value ?? 0);
+    if (!Number.isFinite(safeValue)) {
+      return "0";
+    }
+
+    const locale =
+      language === "Hausa"
+        ? "ha-NG"
+        : language === "French"
+          ? "fr-FR"
+          : language === "Arabic"
+            ? "ar-EG"
+            : "en-US";
+
+    return new Intl.NumberFormat(locale).format(safeValue);
   };
 
   // =====================================================
@@ -954,11 +982,11 @@ const GroupChat = ({
           )}
 
           <span>
-            {Array.isArray(
-              room.members
-            )
-              ? room.members.length
-              : 0}{" "}
+            {formatLocalizedNumber(
+              Array.isArray(room.members)
+                ? room.members.length
+                : 0
+            )}{" "}
             {t.member}
             {Array.isArray(
               room.members

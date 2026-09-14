@@ -90,6 +90,12 @@ const translations = {
     microphonePermissionDenied: "Microphone permission was denied.",
     microphoneUnavailable: "Unable to access the microphone.",
     recordVoiceMessage: "Record voice message",
+    voiceMessage: "Voice message",
+    attachmentFallback: "Attachment",
+    chatServerDisconnected: "Chat server is not connected.",
+    selectRoomFirst: "Select a room first.",
+    selectUserFirst: "Please select a user.",
+    failedToSendMessage: "Failed to send message.",
     stopRecording: "Stop recording",
     add: "Add",
     sharedImage: "Shared image",
@@ -113,7 +119,10 @@ const translations = {
     creator: "Creator",
     remove: "Remove",
     deleting: "Deleting...",
-    deleteRoom: "Delete Room"
+    deleteRoom: "Delete Room",
+    mediaTimeSeparator: " / ",
+    mediaSpeedSuffix: "x",
+    mediaSpeedLabel: "Playback speed"
   },
 
   Hausa: {
@@ -207,6 +216,12 @@ const translations = {
     microphonePermissionDenied: "An ki izinin makirufo.",
     microphoneUnavailable: "Ba za a iya samun makirufo ba.",
     recordVoiceMessage: "Rikodin saƙon murya",
+    voiceMessage: "Sakon murya",
+    attachmentFallback: "Abin haɗawa",
+    chatServerDisconnected: "Sabar hira ba ta haɗa ba.",
+    selectRoomFirst: "Da farko zaɓi ɗaki.",
+    selectUserFirst: "Da fatan zaɓi mai amfani.",
+    failedToSendMessage: "An kasa aikawa saƙo.",
     stopRecording: "Tsaya da rikodi",
     add: "Ƙara",
     sharedImage: "Hoton da aka raba",
@@ -230,7 +245,10 @@ const translations = {
     creator: "Mahalicci",
     remove: "Cire",
     deleting: "Ana gogewa...",
-    deleteRoom: "Goge ɗaki"
+    deleteRoom: "Goge ɗaki",
+    mediaTimeSeparator: " / ",
+    mediaSpeedSuffix: "x",
+    mediaSpeedLabel: "Saurin kunna sauti"
   },
 
   French: {
@@ -324,6 +342,12 @@ const translations = {
     microphonePermissionDenied: "L'autorisation du microphone a été refusée.",
     microphoneUnavailable: "Impossible d'accéder au microphone.",
     recordVoiceMessage: "Enregistrer un message vocal",
+    voiceMessage: "Message vocal",
+    attachmentFallback: "Pièce jointe",
+    chatServerDisconnected: "Le serveur de chat n'est pas connecté.",
+    selectRoomFirst: "Sélectionnez d'abord un salon.",
+    selectUserFirst: "Veuillez sélectionner un utilisateur.",
+    failedToSendMessage: "Échec de l'envoi du message.",
     stopRecording: "Arrêter l'enregistrement",
     add: "Ajouter",
     sharedImage: "Image partagée",
@@ -347,7 +371,10 @@ const translations = {
     creator: "Créateur",
     remove: "Supprimer",
     deleting: "Suppression...",
-    deleteRoom: "Supprimer le salon"
+    deleteRoom: "Supprimer le salon",
+    mediaTimeSeparator: " / ",
+    mediaSpeedSuffix: "x",
+    mediaSpeedLabel: "Vitesse de lecture"
   },
 
   Arabic: {
@@ -441,6 +468,12 @@ const translations = {
     microphonePermissionDenied: "تم رفض إذن الميكروفون.",
     microphoneUnavailable: "تعذر الوصول إلى الميكروفون.",
     recordVoiceMessage: "تسجيل رسالة صوتية",
+    voiceMessage: "رسالة صوتية",
+    attachmentFallback: "مرفق",
+    chatServerDisconnected: "خادم الدردشة غير متصل.",
+    selectRoomFirst: "اختر الغرفة أولاً.",
+    selectUserFirst: "يرجى تحديد مستخدم.",
+    failedToSendMessage: "فشل إرسال الرسالة.",
     stopRecording: "إيقاف التسجيل",
     add: "إضافة",
     sharedImage: "صورة مشتركة",
@@ -464,7 +497,10 @@ const translations = {
     creator: "المنشئ",
     remove: "إزالة",
     deleting: "جارٍ الحذف...",
-    deleteRoom: "حذف الغرفة"
+    deleteRoom: "حذف الغرفة",
+    mediaTimeSeparator: " / ",
+    mediaSpeedSuffix: "x",
+    mediaSpeedLabel: "سرعة التشغيل"
   }
 };
 

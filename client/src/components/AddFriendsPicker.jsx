@@ -8,7 +8,7 @@ import {
 import { useLanguage } from "../context/LanguageContext";
 
 const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestUpdated }) => {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
@@ -226,7 +226,7 @@ const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestU
         </svg>
         {incomingRequestCount > 0 && (
           <span className="friend-request-badge" aria-label={`${incomingRequestCount} incoming friend requests`}>
-            {incomingRequestCount > 99 ? "99+" : incomingRequestCount}
+            {incomingRequestCount > 99 ? "99+" : formatLocalizedNumber(incomingRequestCount, language)}
           </span>
         )}
       </button>

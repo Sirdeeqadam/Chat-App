@@ -1,24 +1,21 @@
 import { useEffect, useRef, useState } from "react";
+import { useLanguage } from "../context/LanguageContext";
+import {
+  formatMediaNumber,
+  formatMediaTime,
+} from "../i18n/formatMediaTime";
 
 const SPEEDS = [1, 1.5, 2];
 
-const formatTime = (value) => {
-  if (!Number.isFinite(value) || value < 0) {
-    return "0:00";
-  }
-
-  const minutes = Math.floor(value / 60);
-  const seconds = Math.floor(value % 60).toString().padStart(2, "0");
-  return `${minutes}:${seconds}`;
-};
-
 const VideoMessagePlayer = ({ src }) => {
+  const { language, t } = useLanguage();
   const playerRef = useRef(null);
   const videoRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     setPlaying(false);
@@ -26,6 +23,18 @@ const VideoMessagePlayer = ({ src }) => {
     setDuration(0);
     setSpeed(1);
   }, [src]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
 
   const togglePlayback = async () => {
     const video = videoRef.current;
@@ -97,7 +106,10 @@ const VideoMessagePlayer = ({ src }) => {
   };
 
   return (
-    <div ref={playerRef} className="video-message-player">
+    <div
+      ref={playerRef}
+      className={`video-message-player${isFullscreen ? " is-fullscreen" : ""}`}
+    >
       <video
         ref={videoRef}
         src={src}
@@ -134,7 +146,9 @@ const VideoMessagePlayer = ({ src }) => {
         </button>
 
         <span className="video-message-time">
-          {formatTime(currentTime)} / {formatTime(duration)}
+          {formatMediaTime(currentTime, language)}
+          {t.mediaTimeSeparator}
+          {formatMediaTime(duration, language)}
         </span>
 
         <button
@@ -168,10 +182,10 @@ const VideoMessagePlayer = ({ src }) => {
           type="button"
           className="video-message-speed"
           onClick={cycleSpeed}
-          aria-label={`Playback speed ${speed}x. Change speed.`}
-          title="Playback speed"
+          aria-label={`${t.mediaSpeedLabel} ${formatMediaNumber(speed, language)}${t.mediaSpeedSuffix}`}
+          title={t.mediaSpeedLabel}
         >
-          {speed}x
+          {formatMediaNumber(speed, language)}{t.mediaSpeedSuffix}
         </button>
       </div>
     </div>

@@ -1,18 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import { useLanguage } from "../context/LanguageContext";
+import {
+  formatMediaNumber,
+  formatMediaTime,
+} from "../i18n/formatMediaTime";
 
 const SPEEDS = [1, 1.5, 2];
 
-const formatTime = (value) => {
-  if (!Number.isFinite(value) || value < 0) {
-    return "0:00";
-  }
-
-  const minutes = Math.floor(value / 60);
-  const seconds = Math.floor(value % 60).toString().padStart(2, "0");
-  return `${minutes}:${seconds}`;
-};
-
 const VoiceMessagePlayer = ({ src }) => {
+  const { language, t } = useLanguage();
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -119,8 +115,8 @@ const VoiceMessagePlayer = ({ src }) => {
           ))}
         </button>
         <div className="voice-message-time">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
+          <span>{formatMediaTime(currentTime, language)}</span>
+          <span>{formatMediaTime(duration, language)}</span>
         </div>
       </div>
 
@@ -128,9 +124,10 @@ const VoiceMessagePlayer = ({ src }) => {
         type="button"
         className="voice-message-speed"
         onClick={cycleSpeed}
-        aria-label={`Playback speed ${speed}x. Change speed.`}
+        aria-label={`${t.mediaSpeedLabel} ${formatMediaNumber(speed, language)}${t.mediaSpeedSuffix}`}
+        title={t.mediaSpeedLabel}
       >
-        {speed}x
+        {formatMediaNumber(speed, language)}{t.mediaSpeedSuffix}
       </button>
     </div>
   );
