@@ -43,8 +43,10 @@ const createTransporter = async () => {
     throw new Error("SMTP_PORT must be 465 or 587.");
   }
 
+  const { address } = await dns.promises.lookup(smtpHost, { family: 4 });
+
   return nodemailer.createTransport({
-    host: smtpHost,
+    host: address,
     port: smtpPort,
     secure: smtpSecure,
     auth: { user: emailUser, pass: emailPass },
