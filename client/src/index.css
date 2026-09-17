@@ -6662,9 +6662,9 @@ body {
 
 /* Final premium bubble treatment for every text and attachment bubble. */
 .message:not(:has(.video-message-player)) {
-  min-width: 62px;
-  padding: 10px 13px 8px;
-  border-radius: 16px;
+  min-width: 56px;
+  padding: 8px 10px 6px;
+  border-radius: 14px;
   border-bottom-right-radius: 3px;
   box-shadow: 0 4px 12px rgba(38, 58, 88, 0.1);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
@@ -6742,13 +6742,6 @@ body {
     max-width: 46px;
     max-height: 46px;
     flex-basis: 46px;
-  }
-
-  .message:not(:has(.video-message-player)) {
-    min-width: 56px;
-    padding: 8px 10px 6px;
-    border-radius: 14px;
-    border-bottom-right-radius: 3px;
   }
 }
 
