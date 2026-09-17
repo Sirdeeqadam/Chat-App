@@ -5080,98 +5080,153 @@ const Chat = () => {
                         msg?._id ||
                         msg?.id;
 
+                      const avatarSource =
+                        isMine ? profileImage : getImageUrl(selectedUser?.profilePicture);
+
+                      const avatarInitial =
+                        isMine
+                          ? getInitial(
+                              user?.username || user?.email || "U"
+                            )
+                          : getInitial(
+                              selectedUser?.username || "U"
+                            );
+
                       return (
                         <div
                           key={String(id)}
                           className={
                             isMine
-                              ? "message sent"
-                              : "message received"
+                              ? "private-message-row mine"
+                              : "private-message-row theirs"
                           }
                         >
 
-                          {msg.messageType === "audio" &&
-                          msg.attachmentUrl ? (
-                            <VoiceMessagePlayer
-                              src={getImageUrl(msg.attachmentUrl)}
-                            />
-                          ) : msg.messageType === "video" &&
-                            msg.attachmentUrl ? (
-                            <VideoMessagePlayer
-                              src={getImageUrl(msg.attachmentUrl)}
-                            />
-                          ) : msg.messageType === "image" &&
-                            msg.attachmentUrl ? (
-                            <img
-                              src={getImageUrl(
-                                msg.attachmentUrl
+                          {!isMine && (
+                            <div className="private-message-avatar">
+                              {avatarSource ? (
+                                <img
+                                  src={avatarSource}
+                                  alt={
+                                    selectedUser?.username || "User"
+                                  }
+                                  className="private-message-avatar-image"
+                                />
+                              ) : (
+                                <span className="private-message-avatar-placeholder">
+                                  {avatarInitial}
+                                </span>
                               )}
-                              alt={
-                                msg.attachmentName ||
-                                t.sharedImage
-                              }
-                              className="message-attachment-image"
-                            />
-                          ) : msg.attachmentUrl ? (
-                            <a
-                              href={getImageUrl(
-                                msg.attachmentUrl
-                              )}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              {msg.attachmentName ||
-                                msg.message ||
-                                t.downloadAttachment}
-                            </a>
-                          ) : (
-                            <p>
-                              {isMine
-                                ? msg.message
-                                : msg.translatedMessage ||
-                                  msg.message}
-                            </p>
+                            </div>
                           )}
 
-                          <div className="message-meta">
-                            {(msg.messageType === "audio" &&
-                              msg.attachmentUrl &&
-                              msg.attachmentMimeType?.startsWith("audio/")) && (
-                              <span className="audio-attachment-tag">AUD</span>
-                            )}
+                          <div
+                            className={
+                              isMine
+                                ? "message sent"
+                                : "message received"
+                            }
+                          >
 
-                            <small className="message-time">
-                              {msg.createdAt
-                                ? new Intl.DateTimeFormat(
-                                    getLocaleForLanguage(language),
-                                    {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    }
-                                  ).format(new Date(msg.createdAt))
-                                : ""}
-                            </small>
-
-                            {isMine && (
-                              <small
-                                className={`message-status ${
-                                  msg.deliveryStatus ===
-                                  "read"
-                                    ? "read"
-                                    : ""
-                                }`}
+                            {msg.messageType === "audio" &&
+                            msg.attachmentUrl ? (
+                              <VoiceMessagePlayer
+                                src={getImageUrl(msg.attachmentUrl)}
+                              />
+                            ) : msg.messageType === "video" &&
+                              msg.attachmentUrl ? (
+                              <VideoMessagePlayer
+                                src={getImageUrl(msg.attachmentUrl)}
+                              />
+                            ) : msg.messageType === "image" &&
+                              msg.attachmentUrl ? (
+                              <img
+                                src={getImageUrl(
+                                  msg.attachmentUrl
+                                )}
+                                alt={
+                                  msg.attachmentName ||
+                                  t.sharedImage
+                                }
+                                className="message-attachment-image"
+                              />
+                            ) : msg.attachmentUrl ? (
+                              <a
+                                href={getImageUrl(
+                                  msg.attachmentUrl
+                                )}
+                                target="_blank"
+                                rel="noreferrer"
                               >
-                                {msg.deliveryStatus ===
-                                "read"
-                                  ? `✓✓ ${t.readStatus}`
-                                  : msg.deliveryStatus ===
-                                    "delivered"
-                                  ? `✓✓ ${t.deliveredStatus}`
-                                  : `✓ ${t.sentStatus}`}
-                              </small>
+                                {msg.attachmentName ||
+                                  msg.message ||
+                                  t.downloadAttachment}
+                              </a>
+                            ) : (
+                              <p>
+                                {isMine
+                                  ? msg.message
+                                  : msg.translatedMessage ||
+                                    msg.message}
+                              </p>
                             )}
+
+                            <div className="message-meta">
+                              {(msg.messageType === "audio" &&
+                                msg.attachmentUrl &&
+                                msg.attachmentMimeType?.startsWith("audio/")) && (
+                                <span className="audio-attachment-tag">AUD</span>
+                              )}
+
+                              <small className="message-time">
+                                {msg.createdAt
+                                  ? new Intl.DateTimeFormat(
+                                      getLocaleForLanguage(language),
+                                      {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      }
+                                    ).format(new Date(msg.createdAt))
+                                  : ""}
+                              </small>
+
+                              {isMine && (
+                                <small
+                                  className={`message-status ${
+                                    msg.deliveryStatus ===
+                                    "read"
+                                      ? "read"
+                                      : ""
+                                  }`}
+                                >
+                                  {msg.deliveryStatus ===
+                                  "read"
+                                    ? `✓✓ ${t.readStatus}`
+                                    : msg.deliveryStatus ===
+                                      "delivered"
+                                    ? `✓✓ ${t.deliveredStatus}`
+                                    : `✓ ${t.sentStatus}`}
+                                </small>
+                              )}
+                            </div>
+
                           </div>
 
+                          {isMine && (
+                            <div className="private-message-avatar">
+                              {avatarSource ? (
+                                <img
+                                  src={avatarSource}
+                                  alt={user?.username || "You"}
+                                  className="private-message-avatar-image"
+                                />
+                              ) : (
+                                <span className="private-message-avatar-placeholder">
+                                  {avatarInitial}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     }
