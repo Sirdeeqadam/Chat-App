@@ -1,138 +1,48 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
-const socketAuth = async (
-  socket,
-  next
-) => {
+const socketAuth = async (socket, next) => {
   try {
-    // =====================================================
-    // GET TOKEN
-    // =====================================================
-
-    const token =
-      socket.handshake?.auth?.token;
+    const token = socket.handshake?.auth?.token;
 
     if (!token) {
-      return next(
-        new Error(
-          "Authentication required"
-        )
-      );
+      return next(new Error("Authentication required"));
     }
-
-    // =====================================================
-    // JWT CONFIG
-    // =====================================================
 
     if (!process.env.JWT_SECRET) {
-      console.error(
-        "JWT_SECRET is missing from .env"
-      );
-
-      return next(
-        new Error(
-          "JWT configuration error"
-        )
-      );
+      console.error("JWT_SECRET is missing from environment variables");
+      return next(new Error("JWT configuration error"));
     }
 
-    // =====================================================
-    // VERIFY TOKEN
-    // =====================================================
-
-    let decoded;
-
-    try {
-      decoded =
-        jwt.verify(
-          token,
-          process.env.JWT_SECRET
-        );
-    } catch (error) {
-      if (
-        error?.name ===
-        "TokenExpiredError"
-      ) {
-        return next(
-          new Error(
-            "Token has expired"
-          )
-        );
-      }
-
-      return next(
-        new Error(
-          "Invalid token"
-        )
-      );
-    }
-
-    // =====================================================
-    // VALIDATE PAYLOAD
-    // =====================================================
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     if (!decoded?.id) {
-      return next(
-        new Error(
-          "Invalid token payload"
-        )
-      );
+      return next(new Error("Invalid token payload"));
     }
 
-    const userId =
-      String(decoded.id);
-
-    // =====================================================
-    // LOAD USER
-    // =====================================================
-
-    const user =
-      await User.findById(
-        userId
-      ).select(
-        "_id username email language"
-      );
+    const user = await User.findById(decoded.id).select(
+      "_id username email language profilePicture"
+    );
 
     if (!user) {
-      return next(
-        new Error(
-          "User account no longer exists"
-        )
-      );
+      return next(new Error("User account no longer exists"));
     }
 
-    // =====================================================
-    // STORE AUTHENTICATED USER DATA
-    // =====================================================
-
-    socket.userId =
-      String(user._id);
-
-    socket.username =
-      user.username;
-
-    socket.userLanguage =
-      user.language || "English";
-
-    console.log(
-      `[SOCKET AUTH] user=${socket.userId}, username=${socket.username}, language=${socket.userLanguage}`
-    );
+    socket.userId = String(user._id);
+    socket.username = user.username || "User";
+    socket.userLanguage = user.language || "English";
+    socket.profilePicture = user.profilePicture || null;
 
     return next();
   } catch (error) {
-    console.error(
-      "Socket authentication error:",
-      error
-    );
+    console.error("Socket authentication error:", error.message);
 
-    return next(
-      new Error(
-        "Socket authentication failed"
-      )
-    );
+    if (error.name === "TokenExpiredError") {
+      return next(new Error("Token has expired"));
+    }
+
+    return next(new Error("Invalid token"));
   }
 };
 
-module.exports =
-  socketAuth;
+module.exports = socketAuth;

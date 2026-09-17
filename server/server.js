@@ -12,6 +12,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
 const { Server } = require("socket.io");
+const googleAuthRoutes = require("./routes/googleAuthRoutes");
 
 // =========================================================
 // ROUTES
@@ -148,7 +149,7 @@ app.get("/api/health", (req, res) => {
   return res.status(200).json({
     status: "ok",
     message: "Server is running",
-    smtp: getEmailConfigStatus(),
+    email: getEmailConfigStatus(),
     mongodb: states[mongoState] || "unknown",
     socket: io.engine ? "available" : "unavailable",
     timestamp: new Date().toISOString(),
@@ -185,7 +186,7 @@ app.use("/api/read-state", readStateRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/friends", friendRoutes);
 app.use("/api/search", searchRoutes);
-
+app.use("/auth", googleAuthRoutes);
 // =========================================================
 // 404 & ERROR HANDLING MIDDLEWARE
 // =========================================================

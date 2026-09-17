@@ -1,67 +1,52 @@
-const nodemailer = require("nodemailer");
-const dns = require("dns");
+const { google } = require("googleapis");
 
-if (typeof dns.setDefaultResultOrder === "function") {
-  dns.setDefaultResultOrder("ipv4first");
-}
-
-const emailUser = (
-  process.env.SMTP_USER ||
-  process.env.NODE_CODE_SENDING_EMAIL_ADDRESS ||
-  process.env.EMAIL_USER ||
-  ""
-).trim();
-const emailPass = String(
-  process.env.SMTP_PASS ||
-  process.env.NODE_CODE_SENDING_EMAIL_PASSWORD ||
-  process.env.EMAIL_PASS ||
-  ""
-).replace(/\s+/g, "");
-const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
-const smtpPort = Number(process.env.SMTP_PORT) || 465;
-const smtpSecure = smtpPort === 465;
-const emailFrom = process.env.SMTP_FROM || `"Multilingual Chat" <${emailUser}>`;
+const gmailUser = String(process.env.GMAIL_USER || "").trim();
+const clientId = String(process.env.GOOGLE_CLIENT_ID || "").trim();
+const clientSecret = String(process.env.GOOGLE_CLIENT_SECRET || "").trim();
+const refreshToken = String(process.env.GOOGLE_REFRESH_TOKEN || "").trim();
+const emailFrom = String(process.env.GMAIL_FROM || `Multilingual Chat <${gmailUser}>`).trim();
 
 const getEmailConfigStatus = () => ({
-  configured: Boolean(emailUser && emailPass),
-  userConfigured: Boolean(emailUser),
-  passwordConfigured: Boolean(emailPass),
-  host: smtpHost,
-  port: smtpPort,
-  secure: smtpSecure,
+  provider: "gmail-api",
+  configured: Boolean(gmailUser && clientId && clientSecret && refreshToken),
+  userConfigured: Boolean(gmailUser),
+  clientConfigured: Boolean(clientId && clientSecret),
+  refreshTokenConfigured: Boolean(refreshToken),
   fromConfigured: Boolean(emailFrom),
 });
 
-const createTransporter = async () => {
-  if (!emailUser || !emailPass) {
-    throw new Error(
-      "SMTP configuration is missing. Set SMTP_USER and SMTP_PASS in the server environment."
-    );
-  }
+const encodeMessage = ({ to, subject, text, html }) => {
+  const body = html || text || "";
+  const contentType = html ? "text/html; charset=UTF-8" : "text/plain; charset=UTF-8";
+  const message = [
+    `From: ${emailFrom}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    "MIME-Version: 1.0",
+    `Content-Type: ${contentType}`,
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    body,
+  ].join("\r\n");
 
-  if (![465, 587].includes(smtpPort)) {
-    throw new Error("SMTP_PORT must be 465 or 587.");
-  }
-
-  const { address } = await dns.promises.lookup(smtpHost, { family: 4 });
-
-  return nodemailer.createTransport({
-    host: address,
-    port: smtpPort,
-    secure: smtpSecure,
-    auth: { user: emailUser, pass: emailPass },
-    tls: { servername: smtpHost, minVersion: "TLSv1.2" },
-    connectionTimeout: 10000,
-    greetingTimeout: 5000,
-    socketTimeout: 10000,
-  });
+  return Buffer.from(message).toString("base64url");
 };
 
 const sendEmail = async ({ to, subject, html, text }) => {
-  const transporter = await createTransporter();
-  const info = await transporter.sendMail({ from: emailFrom, to, subject, text, html });
-  console.log("[Gmail SMTP Email Sent]", info.messageId);
-  return info;
+  if (!gmailUser || !clientId || !clientSecret || !refreshToken) {
+    throw new Error("Gmail API configuration is missing.");
+  }
+
+  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+  oauth2Client.setCredentials({ refresh_token: refreshToken });
+  const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+  const response = await gmail.users.messages.send({
+    userId: "me",
+    requestBody: { raw: encodeMessage({ to, subject, text, html }) },
+  });
+
+  console.log("[Gmail API Email Sent]", response.data.id);
+  return { messageId: response.data.id };
 };
 
 module.exports = { sendEmail, getEmailConfigStatus };
