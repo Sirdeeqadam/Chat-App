@@ -40,10 +40,21 @@ const sendEmail = async ({ to, subject, html, text }) => {
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
   oauth2Client.setCredentials({ refresh_token: refreshToken });
   const gmail = google.gmail({ version: "v1", auth: oauth2Client });
-  const response = await gmail.users.messages.send({
-    userId: "me",
-    requestBody: { raw: encodeMessage({ to, subject, text, html }) },
-  });
+  let response;
+
+  try {
+    response = await gmail.users.messages.send({
+      userId: "me",
+      requestBody: { raw: encodeMessage({ to, subject, text, html }) },
+    });
+  } catch (error) {
+    const providerError = error.response?.data?.error;
+    const details = providerError?.message || error.message;
+    const code = providerError?.code || error.code || "unknown";
+
+    console.error(`[Gmail API Email Error] code=${code} message=${details}`);
+    throw new Error(`Gmail API email delivery failed (${code}): ${details}`);
+  }
 
   console.log("[Gmail API Email Sent]", response.data.id);
   return { messageId: response.data.id };

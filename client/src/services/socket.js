@@ -11,9 +11,10 @@ import { io } from "socket.io-client";
 // Set VITE_SOCKET_URL.
 // =====================================================
 
-const socketURL =
-  import.meta.env.VITE_SOCKET_URL ||
-  "http://localhost:5000";
+const configuredSocketURL = String(import.meta.env.VITE_SOCKET_URL || "").trim();
+const socketURL = import.meta.env.PROD && /localhost|127\.0\.0\.1/i.test(configuredSocketURL)
+  ? "https://chat-app-k29o.onrender.com"
+  : configuredSocketURL || "http://localhost:5000";
 
 const socket = io(
   socketURL,

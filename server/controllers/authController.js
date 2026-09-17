@@ -336,9 +336,11 @@ exports.requestPasswordReset = async (req, res) => {
         text: `Your password reset OTP code is: ${otp}`,
       });
     } catch (emailErr) {
-      console.error("[FORGOT PASSWORD EMAIL ERROR]", emailErr);
+      console.error("[FORGOT PASSWORD EMAIL ERROR]", emailErr.message);
       return res.status(503).json({
-        message: "The password-reset OTP could not be sent. Please check the email configuration and try again.",
+        message: process.env.NODE_ENV === "development"
+          ? emailErr.message
+          : "The password-reset OTP could not be sent. Check the Gmail API configuration and Render logs.",
       });
     }
 

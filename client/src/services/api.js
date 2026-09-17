@@ -8,7 +8,10 @@ const defaultBaseURL = import.meta.env.PROD
   ? "https://chat-app-k29o.onrender.com/api"
   : "http://localhost:5000/api";
 
-const rawBaseURL = import.meta.env.VITE_API_URL || defaultBaseURL;
+const configuredBaseURL = String(import.meta.env.VITE_API_URL || "").trim();
+const rawBaseURL = import.meta.env.PROD && /localhost|127\.0\.0\.1/i.test(configuredBaseURL)
+  ? defaultBaseURL
+  : configuredBaseURL || defaultBaseURL;
 
 const baseURL =
   String(rawBaseURL)
