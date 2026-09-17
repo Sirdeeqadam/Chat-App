@@ -305,11 +305,11 @@ router.get(
         })
           .populate(
             "sender",
-            "username email language"
+            "_id username email language profilePicture"
           )
           .populate(
             "receiver",
-            "username email language"
+            "_id username email language profilePicture"
           )
           .sort({
             createdAt: 1,

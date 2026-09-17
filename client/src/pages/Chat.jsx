@@ -4923,12 +4923,14 @@ const Chat = () => {
                 <div className="call-panel">
                   {incomingCall && callStatus === "idle" ? (
                     <div className="incoming-call">
-                      <strong>
-                        {incomingCall.username || t.someone} {t.isCalling}
-                      </strong>
-                      <span>
-                        {t.incoming} {incomingCall.callType || t.video} {t.call}
-                      </span>
+                      <div className="incoming-call-info">
+                        <strong className="incoming-call-name">
+                          {incomingCall.username || t.someone}
+                        </strong>
+                        <span className="incoming-call-label">
+                          {t.incoming} {incomingCall.callType || t.video} {t.call}
+                        </span>
+                      </div>
                       <div className="incoming-call-actions">
                         <button
                           type="button"
@@ -5048,7 +5050,13 @@ const Chat = () => {
               )}
 
               {socketError && (
-                <div className="socket-error">
+                <div
+                  className={`socket-error ${
+                    socketError.startsWith("Failed to load friends")
+                      ? "users-load-error"
+                      : ""
+                  }`}
+                >
                   {socketError}
                 </div>
               )}
@@ -5080,8 +5088,16 @@ const Chat = () => {
                         msg?._id ||
                         msg?.id;
 
+                      const senderProfile =
+                        isMine
+                          ? user
+                          : msg?.sender || selectedUser || null;
+
                       const avatarSource =
-                        isMine ? profileImage : getImageUrl(selectedUser?.profilePicture);
+                        getImageUrl(
+                          senderProfile?.profilePicture ||
+                            (isMine ? user?.profilePicture : selectedUser?.profilePicture)
+                        );
 
                       const avatarInitial =
                         isMine
@@ -5089,7 +5105,7 @@ const Chat = () => {
                               user?.username || user?.email || "U"
                             )
                           : getInitial(
-                              selectedUser?.username || "U"
+                              msg?.sender?.username || selectedUser?.username || "U"
                             );
 
                       return (
