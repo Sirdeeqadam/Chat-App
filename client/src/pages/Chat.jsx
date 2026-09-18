@@ -215,6 +215,9 @@ const Chat = () => {
   const [socketError, setSocketError] =
     useState("");
 
+  const [fullscreenImage, setFullscreenImage] =
+    useState(null);
+
   const [activeView, setActiveView] =
     useState("chats");
 
@@ -232,6 +235,26 @@ const Chat = () => {
 
   const [mobileMenuOpen, setMobileMenuOpen] =
     useState(false);
+
+  useEffect(() => {
+    if (!fullscreenImage) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setFullscreenImage(null);
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [fullscreenImage]);
 
   // ===================================================
   // ROOMS
@@ -5165,6 +5188,27 @@ const Chat = () => {
                                   t.sharedImage
                                 }
                                 className="message-attachment-image"
+                                onClick={() =>
+                                  setFullscreenImage({
+                                    src: getImageUrl(msg.attachmentUrl),
+                                    alt:
+                                      msg.attachmentName ||
+                                      t.sharedImage,
+                                  })
+                                }
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    setFullscreenImage({
+                                      src: getImageUrl(msg.attachmentUrl),
+                                      alt:
+                                        msg.attachmentName ||
+                                        t.sharedImage,
+                                    });
+                                  }
+                                }}
                               />
                             ) : msg.attachmentUrl ? (
                               <a
@@ -5354,6 +5398,32 @@ const Chat = () => {
               {/* ROOM HEADER */}
 
               <div className="conversation-header room-header">
+
+                <button
+                  type="button"
+                  className="conversation-back-button mobile-back-button"
+                  onClick={() => {
+                    if (socket.connected && selectedRoom?._id) {
+                      socket.emit("stop_typing", {
+                        roomId: String(selectedRoom._id),
+                      });
+                    }
+
+                    clearTypingTimer();
+                    setSelectedRoom(null);
+                    setRoomMessages([]);
+                    setRoomMessage("");
+                    setRoomTypingUsers([]);
+                    setShowRoomMembers(false);
+                    setSocketError("");
+                  }}
+                  title={t.backToRooms}
+                  aria-label={t.backToRooms}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
 
                 <div className="room-header-information">
 
@@ -5959,6 +6029,33 @@ const Chat = () => {
         )}
 
       </main>
+
+      {fullscreenImage && (
+        <div
+          className="image-lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label={fullscreenImage.alt}
+          onClick={() => setFullscreenImage(null)}
+        >
+          <button
+            type="button"
+            className="image-lightbox-close"
+            aria-label={t.close || "Close image"}
+            title={t.close || "Close image"}
+            onClick={() => setFullscreenImage(null)}
+          >
+            <span aria-hidden="true">&#10005;</span>
+          </button>
+
+          <img
+            src={fullscreenImage.src}
+            alt={fullscreenImage.alt}
+            className="image-lightbox-image"
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };
