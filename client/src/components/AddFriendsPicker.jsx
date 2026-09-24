@@ -232,70 +232,73 @@ const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestU
       </button>
 
       {open && (
-        <div className="add-friends-modal">
-          <div className="add-friends-header">
-            <h3>{t.addFriends}</h3>
-            <button
-              type="button"
-              className="close-modal-btn"
-              onClick={() => setOpen(false)}
-              aria-label={t.close}
-            >
-              ×
-            </button>
-          </div>
+        <>
+          <div className="add-friends-modal-backdrop" aria-hidden="true" />
+          <div className="add-friends-modal">
+            <div className="add-friends-header">
+              <h3>{t.addFriends}</h3>
+              <button
+                type="button"
+                className="close-modal-btn"
+                onClick={() => setOpen(false)}
+                aria-label={t.close}
+              >
+                ×
+              </button>
+            </div>
 
-          <div className="add-friends-search-container">
-            <input
-              type="search"
-              placeholder={`${t.search} ${t.users.toLowerCase()}...`}
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              autoFocus
-              aria-label={`${t.search} ${t.users}`}
-            />
-          </div>
+            <div className="add-friends-search-container">
+              <input
+                type="search"
+                placeholder={`${t.search} ${t.users.toLowerCase()}...`}
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                autoFocus
+                aria-label={`${t.search} ${t.users}`}
+              />
+            </div>
 
-          {error && <div className="add-friends-error">{error}</div>}
+            {error && <div className="add-friends-error">{error}</div>}
 
-          <div className="add-friends-list">
-            {loading ? (
-              <div className="add-friends-loading">{t.loading} {t.users.toLowerCase()}...</div>
-            ) : filteredUsers.length === 0 ? (
-              <div className="add-friends-empty">
-                {searchQuery
-                  ? "No users found matching your search."
-                  : "No users available."}
-              </div>
-            ) : (
-              filteredUsers.map((user) => (
-                <div key={user._id} className="add-friends-item">
-                  <div className="user-avatar-section">
-                    {user.profilePicture ? (
-                      <img
-                        src={getImageUrl(user.profilePicture)}
-                        alt={user.username}
-                        className="user-avatar-img"
-                      />
-                    ) : (
-                      <span className="user-avatar-initial">
-                        {getInitial(user.username || user.email)}
-                      </span>
-                    )}
-                    <div className="user-info">
-                      <div className="username">
-                        {user.username || user.email}
-                      </div>
-                      {user.bio && <div className="user-bio">{user.bio}</div>}
-                    </div>
-                  </div>
-
-                  <div className="user-action">{getButtonContent(user)}</div>
+            <div className="add-friends-list">
+              {loading ? (
+                <div className="add-friends-loading">{t.loading} {t.users.toLowerCase()}...</div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="add-friends-empty">
+                  {searchQuery
+                    ? "No users found matching your search."
+                    : "No users available."}
                 </div>
-              ))
-            )}
+              ) : (
+                filteredUsers.map((user) => (
+                  <div key={user._id} className="add-friends-item">
+                    <div className="user-avatar-section">
+                      {user.profilePicture ? (
+                        <img
+                          src={getImageUrl(user.profilePicture)}
+                          alt={user.username}
+                          className="user-avatar-img"
+                        />
+                      ) : (
+                        <span className="user-avatar-initial">
+                          {getInitial(user.username || user.email)}
+                        </span>
+                      )}
+                      <div className="user-info">
+                        <div className="username">
+                          {user.username || user.email}
+                        </div>
+                        {user.bio && <div className="user-bio">{user.bio}</div>}
+                      </div>
+                    </div>
+
+                    <div className="user-action">{getButtonContent(user)}</div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

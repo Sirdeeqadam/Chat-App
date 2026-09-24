@@ -7291,3 +7291,206 @@ body {
 .message.received:has(.video-message-player) {
   border: 0.5px solid rgba(218, 218, 218, 0.72);
 }
+
+/* Phone usability fixes. Keep these rules scoped to the mobile layout. */
+@media (max-width: 760px) {
+  .auth-container {
+    min-height: 100dvh;
+    padding-top: max(20px, env(safe-area-inset-top));
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+
+  .chat-page {
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+
+  .chat-page:not(.has-active-conversation) .sidebar {
+    height: calc(100dvh - 148px);
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+
+  .sidebar-navigation {
+    height: calc(76px + env(safe-area-inset-bottom));
+    min-height: calc(76px + env(safe-area-inset-bottom));
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-back-button,
+  .call-action-button,
+  .voice-record-button,
+  .message-input-shell .file-attachment-button,
+  .message-form > button[type="submit"] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .mobile-back-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .call-action-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .voice-record-button,
+  .message-input-shell .file-attachment-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .message-input-shell .file-attachment-button {
+    margin-left: -7px;
+  }
+
+  .message-input-shell input {
+    padding-left: 48px;
+  }
+
+  .room-header {
+    align-items: center;
+  }
+
+  .room-header-information {
+    flex: 1 1 auto;
+  }
+
+  .room-header-actions-main {
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .room-header-actions-main button {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 760px) and (orientation: landscape) {
+  .chat-page.has-active-conversation .chat-area {
+    height: 100dvh;
+  }
+
+  .conversation-header {
+    min-height: 56px;
+    padding-top: max(5px, env(safe-area-inset-top));
+    padding-bottom: 5px;
+  }
+
+  .messages,
+  .group-messages {
+    padding-top: 8px;
+    padding-bottom: 6px;
+  }
+
+  .message-form {
+    padding-top: 5px;
+    padding-bottom: calc(5px + env(safe-area-inset-bottom));
+  }
+
+  .active-call {
+    min-height: 100dvh;
+  }
+}
+
+@media (max-width: 760px) {
+  .chat-header {
+    position: relative;
+    z-index: 10001;
+  }
+
+  .chat-header .language-selector-wrapper {
+    position: relative;
+    z-index: 10002;
+  }
+
+  .chat-header .language-menu {
+    pointer-events: auto;
+  }
+
+  .chat-header .language-option {
+    background: #ffffff;
+  }
+
+  .chat-header .language-option:hover,
+  .chat-header .language-option.active {
+    background: #eef4ff;
+  }
+
+  .add-friends-modal-backdrop {
+    position: fixed;
+    top: 72px;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 10002;
+    display: block;
+    background: rgb(15 23 42 / 22%);
+    pointer-events: auto;
+    touch-action: none;
+  }
+
+  .add-friends-modal,
+  .header-add-friends-picker .add-friends-modal {
+    top: 72px;
+    right: 12px;
+    bottom: auto;
+    left: 12px;
+    width: auto;
+    max-width: none;
+    max-height: calc(100dvh - 84px);
+    min-height: 0;
+    transform: none;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    z-index: 10003;
+    pointer-events: auto;
+    box-shadow: 0 20px 40px rgb(15 23 42 / 25%);
+  }
+
+  .add-friends-search-container {
+    padding: 9px 14px;
+  }
+
+  .add-friends-search-container input,
+  .header-add-friends-picker .add-friends-search-container input {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 11px;
+    border: 1px solid #d8e2f0;
+    border-radius: 9px;
+    background: #f7f9fc;
+    color: #18243d;
+    font-size: 13px;
+    line-height: 1.2;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  }
+
+  .add-friends-search-container input::placeholder {
+    color: #8190aa;
+  }
+
+  .add-friends-search-container input:focus {
+    border-color: #9eb9ff;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgb(71 120 232 / 12%);
+  }
+}
+
+.incoming-call-actions button {
+  min-width: 92px;
+  min-height: 40px;
+  padding: 10px 16px;
+  font-size: 13px;
+}
+
+@media (min-width: 761px) {
+  .incoming-call-actions button {
+    min-width: 110px;
+    min-height: 44px;
+    padding: 11px 20px;
+    font-size: 14px;
+  }
+}
