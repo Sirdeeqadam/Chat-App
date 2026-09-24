@@ -164,10 +164,21 @@ router.put(
   async (req, res) => {
     try {
       const {
-        username,
         language,
         bio,
       } = req.body || {};
+
+      if (
+        Object.prototype.hasOwnProperty.call(
+          req.body || {},
+          "username"
+        )
+      ) {
+        return res.status(400).json({
+          message:
+            "Username cannot be changed.",
+        });
+      }
 
       const user =
         await User.findById(
@@ -179,59 +190,6 @@ router.put(
           message:
             "User not found.",
         });
-      }
-
-      // =================================================
-      // USERNAME
-      // =================================================
-
-      if (
-        username !== undefined
-      ) {
-        const cleanedUsername =
-          String(username).trim();
-
-        if (
-          cleanedUsername.length < 3
-        ) {
-          return res.status(400).json({
-            message:
-              "Username must be at least 3 characters.",
-          });
-        }
-
-        if (
-          cleanedUsername.length > 30
-        ) {
-          return res.status(400).json({
-            message:
-              "Username cannot exceed 30 characters.",
-          });
-        }
-
-        const escapedUsername = cleanedUsername.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const existingUser =
-          await User.findOne({
-            username: {
-              $regex: `^${escapedUsername}$`,
-              $options: "i",
-            },
-
-            _id: {
-              $ne:
-                req.user.id,
-            },
-          }).select("_id");
-
-        if (existingUser) {
-          return res.status(409).json({
-            message:
-              "Username is already taken.",
-          });
-        }
-
-        user.username =
-          cleanedUsername;
       }
 
       // =================================================

@@ -304,33 +304,8 @@ const Profile = () => {
     async (event) => {
       event.preventDefault();
 
-      const cleanedUsername =
-        username.trim();
-
       const cleanedBio =
         bio.trim();
-
-      if (
-        cleanedUsername.length <
-        3
-      ) {
-        setError(
-          "Username must be at least 3 characters."
-        );
-
-        return;
-      }
-
-      if (
-        cleanedUsername.length >
-        30
-      ) {
-        setError(
-          "Username cannot exceed 30 characters."
-        );
-
-        return;
-      }
 
       if (
         cleanedBio.length >
@@ -353,9 +328,6 @@ const Profile = () => {
 
         const response =
           await updateProfile({
-            username:
-              cleanedUsername,
-
             language,
 
             bio:
@@ -794,14 +766,8 @@ const Profile = () => {
             maxLength={30}
             minLength={3}
             required
-            disabled={
-              saving
-            }
-            onChange={(event) =>
-              setUsername(
-                event.target.value
-              )
-            }
+            readOnly
+            aria-readonly="true"
           />
 
           <label htmlFor="email">
