@@ -7477,6 +7477,11 @@ body {
     background: #ffffff;
     box-shadow: 0 0 0 3px rgb(71 120 232 / 12%);
   }
+
+  .sidebar-navigation {
+    padding-top: 14px;
+    padding-bottom: 0;
+  }
 }
 
 .incoming-call-actions button {

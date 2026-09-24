@@ -4291,7 +4291,7 @@ const Chat = () => {
               {users.length ===
               0 ? (
                 <p>
-                  No recent chats. Use the Add Friends button to start chatting.
+                  {t.noRecentChatsHint}
                 </p>
               ) : (
                 users
