@@ -686,7 +686,7 @@ const Chat = () => {
     useCallback(() => {
       if (incomingCall?.from && socket.connected) {
         socket.emit("call_rejected", {
-          to: incomingCall.from,
+          to: String(incomingCall.from),
         });
       }
 
