@@ -7,6 +7,20 @@ import {
 } from "../services/friendService";
 import { useLanguage } from "../context/LanguageContext";
 
+const getLocaleForLanguage = (selectedLanguage) => {
+  const localeMap = {
+    Hausa: "ha-NG",
+    French: "fr-FR",
+    Arabic: "ar-EG",
+    English: "en-US",
+  };
+
+  return localeMap[selectedLanguage] || "en-US";
+};
+
+const formatLocalizedNumber = (value, selectedLanguage) =>
+  new Intl.NumberFormat(getLocaleForLanguage(selectedLanguage)).format(value);
+
 const AddFriendsPicker = ({ className = "", incomingRequestCount = 0, onRequestUpdated }) => {
   const { language, t } = useLanguage();
   const [open, setOpen] = useState(false);

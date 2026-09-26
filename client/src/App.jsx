@@ -1,3 +1,4 @@
+import { Component } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
@@ -8,6 +9,30 @@ import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
 
+class AppErrorBoundary extends Component {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <main className="app-error" role="alert">
+          <h1>Something went wrong</h1>
+          <p>The app could not load this screen.</p>
+          <button type="button" onClick={() => window.location.reload()}>
+            Reload app
+          </button>
+        </main>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
   return user ? children : <Navigate to="/login" replace />;
@@ -15,9 +40,10 @@ const ProtectedRoute = ({ children }) => {
 
 const App = () => {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+    <AppErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* AUTH ROUTES */}
         <Route path="/login" element={<Login />} />
@@ -49,8 +75,9 @@ const App = () => {
 
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/chat" replace />} />
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+    </AppErrorBoundary>
   );
 };
 
