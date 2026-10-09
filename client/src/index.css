@@ -3101,6 +3101,14 @@ body {
     padding: 14px 16px;
   }
 
+  .room-members-page-header {
+    padding: 12px 14px;
+  }
+
+  .room-members-page-close {
+    font-size: 11px;
+  }
+
   .sidebar {
     padding: 10px 12px;
     border-right: 0;
@@ -3240,7 +3248,57 @@ body {
    ROOM MEMBERS PANEL
 ========================================================= */
 
+.room-members-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: #ffffff;
+}
+
+.room-members-page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.room-members-page-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.room-members-page-heading h3 {
+  margin: 0;
+  color: #111827;
+  font-size: 18px;
+}
+
+.room-members-page-heading p {
+  margin-top: 2px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.room-members-page-close {
+  white-space: nowrap;
+}
+
+.room-members-page-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 12px 18px 18px;
+  background: #ffffff;
+}
+
 .room-members-panel {
+  flex: 1;
+  min-height: 0;
   padding: 12px 18px;
 
   background: #ffffff;
@@ -3282,10 +3340,12 @@ body {
 .room-members-list {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 
   gap: 5px;
 
-  max-height: 230px;
+  max-height: none;
 
   overflow-y: auto;
 }
@@ -4414,6 +4474,7 @@ body {
 }
 
 .profile-form input:disabled,
+.profile-form input:read-only,
 .profile-form select:disabled,
 .profile-form textarea:disabled {
   background: #f3f4f6;
@@ -4421,6 +4482,11 @@ body {
   color: #9ca3af;
 
   cursor: not-allowed;
+}
+
+.profile-form input:read-only:focus {
+  border-color: #d1d5db;
+  box-shadow: none;
 }
 
 .profile-form-footer {

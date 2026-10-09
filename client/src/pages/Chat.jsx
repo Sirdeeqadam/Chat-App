@@ -316,6 +316,12 @@ const Chat = () => {
   const [roomTypingUsers, setRoomTypingUsers] =
     useState([]);
 
+  const [privateRecordingUser, setPrivateRecordingUser] =
+    useState("");
+
+  const [roomRecordingUsers, setRoomRecordingUsers] =
+    useState([]);
+
   const typingTimeoutRef =
     useRef(null);
 
@@ -2207,6 +2213,57 @@ const Chat = () => {
         }
       };
 
+    const handleUserRecording =
+      (data = {}) => {
+        if (String(data.userId || "") === currentUserIdRef.current) {
+          return;
+        }
+
+        if (data.roomId) {
+          const room = selectedRoomRef.current;
+          if (!room || String(data.roomId) !== String(room._id)) {
+            return;
+          }
+
+          setRoomRecordingUsers((previousUsers) => {
+            if (previousUsers.some((item) => String(item.userId) === String(data.userId))) {
+              return previousUsers;
+            }
+
+            return [...previousUsers, {
+              userId: String(data.userId),
+              username: data.username || t.someone,
+            }];
+          });
+          return;
+        }
+
+        const selected = selectedUserRef.current;
+        if (selected && String(data.userId) === getUserId(selected)) {
+          setPrivateRecordingUser(data.username || selected.username || t.someone);
+        }
+      };
+
+    const handleUserStopRecording =
+      (data = {}) => {
+        if (data.roomId) {
+          const room = selectedRoomRef.current;
+          if (!room || String(data.roomId) !== String(room._id)) {
+            return;
+          }
+
+          setRoomRecordingUsers((previousUsers) =>
+            previousUsers.filter((item) => String(item.userId) !== String(data.userId))
+          );
+          return;
+        }
+
+        const selected = selectedUserRef.current;
+        if (selected && String(data.userId) === getUserId(selected)) {
+          setPrivateRecordingUser("");
+        }
+      };
+
     // =================================================
     // REGISTER EVENTS
     // =================================================
@@ -2300,6 +2357,9 @@ const Chat = () => {
       "user_stop_typing",
       handleUserStopTyping
     );
+
+    socket.on("user_recording", handleUserRecording);
+    socket.on("user_stop_recording", handleUserStopRecording);
 
     // =================================================
     // CLEANUP
@@ -2395,6 +2455,9 @@ const Chat = () => {
         "user_stop_typing",
         handleUserStopTyping
       );
+
+      socket.off("user_recording", handleUserRecording);
+      socket.off("user_stop_recording", handleUserStopRecording);
     };
   }, [
     clearTypingTimer,
@@ -2697,7 +2760,9 @@ const Chat = () => {
       clearTypingTimer();
 
       setPrivateTypingUser("");
+      setPrivateRecordingUser("");
       setRoomTypingUsers([]);
+      setRoomRecordingUsers([]);
       setShowRoomMembers(false);
 
       setActiveView("chats");
@@ -3476,7 +3541,9 @@ const Chat = () => {
       clearTypingTimer();
 
       setPrivateTypingUser("");
+      setPrivateRecordingUser("");
       setRoomTypingUsers([]);
+      setRoomRecordingUsers([]);
       setShowRoomMembers(false);
 
       setActiveView("rooms");
@@ -5301,12 +5368,13 @@ const Chat = () => {
 
               </div>
 
-              {privateTypingUser && (
+              {(privateRecordingUser || privateTypingUser) && (
                 <div className="typing-indicator">
 
                   <span>
-                    {privateTypingUser}{" "}
-                    is typing...
+                    {privateRecordingUser
+                      ? `${privateRecordingUser} is recording a voice message...`
+                      : `${privateTypingUser} is typing...`}
                   </span>
 
                 </div>
@@ -5339,10 +5407,17 @@ const Chat = () => {
                 </span>
 
                 <VoiceRecorder
+                  key={`private-${selectedUser._id}`}
                   disabled={!socket.connected}
                   onSendVoice={
                     sendVoiceMessage
                   }
+                  onStarted={() => socket.emit("recording", {
+                    receiver: String(selectedUser._id),
+                  })}
+                  onStopped={() => socket.emit("stop_recording", {
+                    receiver: String(selectedUser._id),
+                  })}
                 />
 
                 <button
@@ -5395,10 +5470,7 @@ const Chat = () => {
             </div>
           ) : (
             <>
-              {/* ROOM HEADER */}
-
               <div className="conversation-header room-header">
-
                 <button
                   type="button"
                   className="conversation-back-button mobile-back-button"
@@ -5426,604 +5498,351 @@ const Chat = () => {
                 </button>
 
                 <div className="room-header-information">
-
                   <h3>
-                    👥{" "}
-                    {selectedRoom.name}
+                    👥 {selectedRoom.name}
                   </h3>
 
                   <div className="room-header-meta">
-
                     <span>
-                      {
-                        selectedRoom.members
-                          ?.length ||
-                        0
-                      }{" "}
-                      {t.members}
+                      {selectedRoom.members?.length || 0} {t.members}
                     </span>
 
                     <button
                       type="button"
                       className="members-toggle-button"
-                      onClick={() =>
-                        setShowRoomMembers(
-                          (previous) =>
-                            !previous
-                        )
-                      }
+                      onClick={() => setShowRoomMembers((previous) => !previous)}
                     >
-                      {showRoomMembers
-                        ? t.hideMembers
-                        : t.viewMembers}
+                      {showRoomMembers ? t.hideMembers : t.viewMembers}
                     </button>
-
                   </div>
-
                 </div>
 
                 <div className="room-header-actions-main">
-
                   {isCurrentUserCreator() ? (
                     <button
                       type="button"
                       className="delete-room-button"
-                      disabled={
-                        roomActionLoading
-                      }
-                      onClick={
-                        handleDeleteRoom
-                      }
+                      disabled={roomActionLoading}
+                      onClick={handleDeleteRoom}
                     >
-                      {roomActionLoading
-                        ? t.deleting
-                        : t.deleteRoom}
+                      {roomActionLoading ? t.deleting : t.deleteRoom}
                     </button>
                   ) : (
                     <button
                       type="button"
                       className="header-leave-button"
-                      disabled={
-                        roomLoading ||
-                        roomActionLoading
-                      }
-                      onClick={() =>
-                        handleLeaveRoom(
-                          selectedRoom
-                        )
-                      }
+                      disabled={roomLoading || roomActionLoading}
+                      onClick={() => handleLeaveRoom(selectedRoom)}
                     >
                       {t.leaveRoom}
                     </button>
                   )}
-
                 </div>
-
               </div>
 
-              {/* ROOM MEMBERS */}
-
-              {showRoomMembers && (
-                <div className="room-members-panel">
-
-                  <div className="room-members-title">
-
-                    <strong>
-                      {t.roomMembers}
-                    </strong>
-
-                    <span>
-                      {
-                        getRoomMembers()
-                          .length
-                      }
-                    </span>
-
-                  </div>
-
-                  <div className="room-members-list">
-
-                    {getRoomMembers()
-                      .length ===
-                    0 ? (
-                      <p className="room-members-empty">
-                        {t.noMembers}
-                      </p>
-                    ) : (
-                      getRoomMembers().map(
-                        (member) => {
-                          const memberId =
-                            getUserId(
-                              member
-                            );
-
-                          const username =
-                            member?.username ||
-                            "User";
-
-                          const memberImage =
-                            getImageUrl(
-                              member?.profilePicture
-                            );
-
-                          const online =
-                            isMemberOnline(
-                              member
-                            );
-
-                          const isCurrentUser =
-                            memberId ===
-                            currentUserId;
-
-                          const isCreator =
-                            getUserId(
-                              selectedRoom.creator
-                            ) ===
-                            memberId;
+              {showRoomMembers ? (
+                <div className="room-members-page">
+                  <div className="room-members-panel room-members-page-panel">
+                    <div className="room-members-list">
+                      {getRoomMembers().length === 0 ? (
+                        <p className="room-members-empty">{t.noMembers}</p>
+                      ) : (
+                        getRoomMembers().map((member) => {
+                          const memberId = getUserId(member);
+                          const username = member?.username || "User";
+                          const memberImage = getImageUrl(member?.profilePicture);
+                          const online = isMemberOnline(member);
+                          const isCurrentUser = memberId === currentUserId;
+                          const isCreator = getUserId(selectedRoom.creator) === memberId;
 
                           return (
-                            <div
-                              key={
-                                memberId
-                              }
-                              className="room-member-item"
-                            >
-
+                            <div key={memberId} className="room-member-item">
                               <div className="room-member-avatar">
-
                                 {memberImage ? (
                                   <img
-                                    src={
-                                      memberImage
-                                    }
-                                    alt={
-                                      username
-                                    }
+                                    src={memberImage}
+                                    alt={username}
                                     className="room-member-avatar-image"
                                   />
                                 ) : (
                                   <span className="room-member-avatar-placeholder">
-                                    {getInitial(
-                                      username
-                                    )}
+                                    {getInitial(username)}
                                   </span>
                                 )}
-
                               </div>
 
                               <div className="room-member-information">
-
                                 <strong>
                                   {username}
-
-                                  {isCurrentUser && (
-                                    <span className="member-you">
-                                      {" "}
-                                      {t.you}
-                                    </span>
-                                  )}
+                                  {isCurrentUser && <span className="member-you"> {t.you}</span>}
                                 </strong>
-
-                                <small>
-                                  {isCreator
-                                    ? t.creator
-                                    : t.member}
-                                </small>
-
+                                <small>{isCreator ? t.creator : t.member}</small>
                               </div>
 
                               <div className="room-member-actions">
-
                                 <div className="room-member-status">
-
-                                  <span
-                                    className={
-                                      online
-                                        ? "online-dot online"
-                                        : "online-dot offline"
-                                    }
-                                  />
-
-                                  <span>
-                                    {online
-                                      ? "Online"
-                                      : t.offline}
-                                  </span>
-
+                                  <span className={online ? "online-dot online" : "online-dot offline"} />
+                                  <span>{online ? "Online" : t.offline}</span>
                                 </div>
 
-                                {isCurrentUserCreator() &&
-                                  !isCurrentUser &&
-                                  !isCreator && (
-                                    <button
-                                      type="button"
-                                      className="remove-member-button"
-                                      disabled={
-                                        roomActionLoading
-                                      }
-                                      onClick={() =>
-                                        handleRemoveRoomMember(
-                                          member
-                                        )
-                                      }
-                                    >
-                                      {roomActionLoading
-                                        ? "..."
-                                        : t.remove}
-                                    </button>
-                                  )}
-
+                                {isCurrentUserCreator() && !isCurrentUser && !isCreator && (
+                                  <button
+                                    type="button"
+                                    className="remove-member-button"
+                                    disabled={roomActionLoading}
+                                    onClick={() => handleRemoveRoomMember(member)}
+                                  >
+                                    {roomActionLoading ? "..." : t.remove}
+                                  </button>
+                                )}
                               </div>
-
                             </div>
                           );
-                        }
-                      )
-                    )}
-
+                        })
+                      )}
+                    </div>
                   </div>
-
                 </div>
-              )}
-
-              {socketError && (
-                <div className="socket-error">
-                  {socketError}
-                </div>
-              )}
-
-              {/* =================================================
-          ROOM MESSAGES
-      ================================================== */}
-
-      <div className="messages">
-
-        {roomMessages.length === 0 ? (
-          <div className="empty-messages">
-
-            <div className="large-room-icon">
-              👥
-            </div>
-
-            <p>
-              {t.noMessages}
-            </p>
-
-            <small>
-              {t.beFirstToSayHello}
-            </small>
-
-          </div>
-        ) : (
-          roomMessages.map((msg) => {
-            const senderId =
-              getUserId(msg?.sender);
-
-            const isMine =
-              senderId === currentUserId;
-
-            const id =
-              msg?._id ||
-              msg?.id ||
-              `${senderId}-${msg?.createdAt}-${msg?.message}`;
-
-            const roomMember =
-              getRoomMember(senderId);
-
-            // Always prefer the freshest profile data.
-            // For our own messages use AuthContext.
-            // For other members use the populated room member.
-            const sender =
-              isMine
-                ? user
-                : roomMember ||
-                  msg?.sender ||
-                  null;
-
-            const senderName =
-              sender?.username ||
-              msg?.sender?.username ||
-              "User";
-
-            const senderImage =
-              getImageUrl(
-                sender?.profilePicture ||
-                  msg?.sender?.profilePicture
-              );
-
-            return (
-              <div
-                key={String(id)}
-                className={
-                  isMine
-                    ? "room-message-row mine"
-                    : "room-message-row theirs"
-                }
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "flex-end",
-                  justifyContent: isMine
-                    ? "flex-end"
-                    : "flex-start",
-                  gap: "8px",
-                  marginBottom: "15px",
-                }}
-              >
-
-                {/* =========================================
-                    OTHER USER AVATAR
-                ========================================== */}
-
-                {!isMine && (
-                  <div
-                    className="room-message-avatar"
-                    style={{
-                      width: "30px",
-                      height: "30px",
-                      minWidth: "30px",
-                      minHeight: "30px",
-                      maxWidth: "30px",
-                      maxHeight: "30px",
-                      flex: "0 0 30px",
-                      borderRadius: "50%",
-                      overflow: "hidden",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: "#dbeafe",
-                    }}
-                  >
-                    {senderImage ? (
-                      <img
-                        src={senderImage}
-                        alt={senderName}
-                        className="room-message-avatar-image"
-                        style={{
-                          width: "30px",
-                          height: "30px",
-                          minWidth: "30px",
-                          minHeight: "30px",
-                          maxWidth: "30px",
-                          maxHeight: "30px",
-                          display: "block",
-                          objectFit: "cover",
-                          objectPosition: "center",
-                          borderRadius: "50%",
-                        }}
-                        onError={(event) => {
-                          event.currentTarget.style.display =
-                            "none";
-
-                          const fallback =
-                            event.currentTarget
-                              .nextElementSibling;
-
-                          if (fallback) {
-                            fallback.style.display =
-                              "flex";
-                          }
-                        }}
-                      />
-                    ) : null}
-
-                    <span
-                      className="room-message-avatar-placeholder"
-                      style={{
-                        width: "30px",
-                        height: "30px",
-                        minWidth: "30px",
-                        minHeight: "30px",
-                        display: senderImage
-                          ? "none"
-                          : "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderRadius: "50%",
-                        background: "#dbeafe",
-                        color: "#2563eb",
-                        fontSize: "11px",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {getInitial(senderName)}
-                    </span>
-                  </div>
-                )}
-
-                {/* =========================================
-                    MESSAGE BUBBLE
-                ========================================== */}
-
-                <div
-                  className={
-                    isMine
-                      ? "message sent room-message"
-                      : "message received room-message"
-                  }
-                  style={{
-                    margin: 0,
-                    maxWidth: "min(500px, 70%)",
-                    flexShrink: 1,
-                  }}
-                >
-                  {!isMine && (
-                    <strong className="room-sender">
-                      {senderName}
-                    </strong>
+              ) : (
+                <>
+                  {socketError && (
+                    <div className="socket-error">
+                      {socketError}
+                    </div>
                   )}
 
-                  <p>
-                    {msg.message}
-                  </p>
+                  <div className="messages">
+                    {roomMessages.length === 0 ? (
+                      <div className="empty-messages">
+                        <div className="large-room-icon">👥</div>
+                        <p>{t.noMessages}</p>
+                        <small>{t.beFirstToSayHello}</small>
+                      </div>
+                    ) : (
+                      roomMessages.map((msg) => {
+                        const senderId = getUserId(msg?.sender);
+                        const isMine = senderId === currentUserId;
+                        const id = msg?._id || msg?.id || `${senderId}-${msg?.createdAt}-${msg?.message}`;
+                        const roomMember = getRoomMember(senderId);
+                        const sender = isMine ? user : roomMember || msg?.sender || null;
+                        const senderName = sender?.username || msg?.sender?.username || "User";
+                        const senderImage = getImageUrl(sender?.profilePicture || msg?.sender?.profilePicture);
 
-                  <small className="message-time">
-                    {msg.createdAt
-                      ? new Date(
-                          msg.createdAt
-                        ).toLocaleTimeString()
-                      : ""}
-                  </small>
-                </div>
+                        return (
+                          <div
+                            key={String(id)}
+                            className={isMine ? "room-message-row mine" : "room-message-row theirs"}
+                            style={{
+                              width: "100%",
+                              display: "flex",
+                              alignItems: "flex-end",
+                              justifyContent: isMine ? "flex-end" : "flex-start",
+                              gap: "8px",
+                              marginBottom: "15px",
+                            }}
+                          >
+                            {!isMine && (
+                              <div
+                                className="room-message-avatar"
+                                style={{
+                                  width: "30px",
+                                  height: "30px",
+                                  minWidth: "30px",
+                                  minHeight: "30px",
+                                  maxWidth: "30px",
+                                  maxHeight: "30px",
+                                  flex: "0 0 30px",
+                                  borderRadius: "50%",
+                                  overflow: "hidden",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  background: "#dbeafe",
+                                }}
+                              >
+                                {senderImage ? (
+                                  <img
+                                    src={senderImage}
+                                    alt={senderName}
+                                    className="room-message-avatar-image"
+                                    style={{
+                                      width: "30px",
+                                      height: "30px",
+                                      minWidth: "30px",
+                                      minHeight: "30px",
+                                      maxWidth: "30px",
+                                      maxHeight: "30px",
+                                      display: "block",
+                                      objectFit: "cover",
+                                      objectPosition: "center",
+                                      borderRadius: "50%",
+                                    }}
+                                    onError={(event) => {
+                                      event.currentTarget.style.display = "none";
+                                      const fallback = event.currentTarget.nextElementSibling;
+                                      if (fallback) {
+                                        fallback.style.display = "flex";
+                                      }
+                                    }}
+                                  />
+                                ) : null}
 
-                {/* =========================================
-                    MY AVATAR
-                ========================================== */}
+                                <span
+                                  className="room-message-avatar-placeholder"
+                                  style={{
+                                    width: "30px",
+                                    height: "30px",
+                                    minWidth: "30px",
+                                    minHeight: "30px",
+                                    display: senderImage ? "none" : "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    borderRadius: "50%",
+                                    background: "#dbeafe",
+                                    color: "#2563eb",
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {getInitial(senderName)}
+                                </span>
+                              </div>
+                            )}
 
-                {isMine && (
-                  <div
-                    className="room-message-avatar"
-                    style={{
-                      width: "30px",
-                      height: "30px",
-                      minWidth: "30px",
-                      minHeight: "30px",
-                      maxWidth: "30px",
-                      maxHeight: "30px",
-                      flex: "0 0 30px",
-                      borderRadius: "50%",
-                      overflow: "hidden",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: "#dbeafe",
-                    }}
-                  >
-                    {senderImage ? (
-                      <img
-                        src={senderImage}
-                        alt={senderName}
-                        className="room-message-avatar-image"
-                        style={{
-                          width: "30px",
-                          height: "30px",
-                          minWidth: "30px",
-                          minHeight: "30px",
-                          maxWidth: "30px",
-                          maxHeight: "30px",
-                          display: "block",
-                          objectFit: "cover",
-                          objectPosition: "center",
-                          borderRadius: "50%",
-                        }}
-                        onError={(event) => {
-                          event.currentTarget.style.display =
-                            "none";
+                            <div
+                              className={isMine ? "message sent room-message" : "message received room-message"}
+                              style={{
+                                margin: 0,
+                                maxWidth: "min(500px, 70%)",
+                                flexShrink: 1,
+                              }}
+                            >
+                              {!isMine && <strong className="room-sender">{senderName}</strong>}
+                              <p>{msg.message}</p>
+                              <small className="message-time">
+                                {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString() : ""}
+                              </small>
+                            </div>
 
-                          const fallback =
-                            event.currentTarget
-                              .nextElementSibling;
+                            {isMine && (
+                              <div
+                                className="room-message-avatar"
+                                style={{
+                                  width: "30px",
+                                  height: "30px",
+                                  minWidth: "30px",
+                                  minHeight: "30px",
+                                  maxWidth: "30px",
+                                  maxHeight: "30px",
+                                  flex: "0 0 30px",
+                                  borderRadius: "50%",
+                                  overflow: "hidden",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  background: "#dbeafe",
+                                }}
+                              >
+                                {senderImage ? (
+                                  <img
+                                    src={senderImage}
+                                    alt={senderName}
+                                    className="room-message-avatar-image"
+                                    style={{
+                                      width: "30px",
+                                      height: "30px",
+                                      minWidth: "30px",
+                                      minHeight: "30px",
+                                      maxWidth: "30px",
+                                      maxHeight: "30px",
+                                      display: "block",
+                                      objectFit: "cover",
+                                      objectPosition: "center",
+                                      borderRadius: "50%",
+                                    }}
+                                    onError={(event) => {
+                                      event.currentTarget.style.display = "none";
+                                      const fallback = event.currentTarget.nextElementSibling;
+                                      if (fallback) {
+                                        fallback.style.display = "flex";
+                                      }
+                                    }}
+                                  />
+                                ) : null}
 
-                          if (fallback) {
-                            fallback.style.display =
-                              "flex";
-                          }
-                        }}
-                      />
-                    ) : null}
+                                <span
+                                  className="room-message-avatar-placeholder"
+                                  style={{
+                                    width: "30px",
+                                    height: "30px",
+                                    minWidth: "30px",
+                                    minHeight: "30px",
+                                    display: senderImage ? "none" : "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    borderRadius: "50%",
+                                    background: "#dbeafe",
+                                    color: "#2563eb",
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {getInitial(senderName)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
 
-                    <span
-                      className="room-message-avatar-placeholder"
-                      style={{
-                        width: "30px",
-                        height: "30px",
-                        minWidth: "30px",
-                        minHeight: "30px",
-                        display: senderImage
-                          ? "none"
-                          : "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderRadius: "50%",
-                        background: "#dbeafe",
-                        color: "#2563eb",
-                        fontSize: "11px",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {getInitial(senderName)}
-                    </span>
+                    <div ref={roomMessagesEndRef} />
                   </div>
-                )}
 
-              </div>
-            );
-          })
-        )}
+                  {(roomTypingUsers.length > 0 || roomRecordingUsers.length > 0) && (
+                    <div className="typing-indicator">
+                      <span>
+                        {roomRecordingUsers.length > 0
+                          ? `${roomRecordingUsers.map((item) => item.username).join(", ")} ${roomRecordingUsers.length === 1 ? "is" : "are"} recording a voice message...`
+                          : `${roomTypingUsers.map((item) => item.username).join(", ")} ${roomTypingUsers.length === 1 ? "is" : "are"} typing...`}
+                      </span>
+                    </div>
+                  )}
 
-        <div ref={roomMessagesEndRef} />
+                  <form className="message-form" onSubmit={sendRoomMessage}>
+                    <span className="message-input-shell">
+                      <FileAttachmentPicker
+                        disabled={!socket.connected}
+                        onSendAttachment={sendRoomAttachmentMessage}
+                      />
 
-      </div>
+                      <input
+                        type="text"
+                        name="room-message"
+                        value={roomMessage}
+                        placeholder={`Message ${selectedRoom.name}...`}
+                        onChange={handleRoomTyping}
+                      />
+                    </span>
 
-      {/* ROOM TYPING */}
+                    <VoiceRecorder
+                      key={`room-${selectedRoom._id}`}
+                      disabled={!socket.connected}
+                      onSendVoice={sendRoomVoiceMessage}
+                      onStarted={() => socket.emit("recording", {
+                        roomId: String(selectedRoom._id),
+                      })}
+                      onStopped={() => socket.emit("stop_recording", {
+                        roomId: String(selectedRoom._id),
+                      })}
+                    />
 
-              {roomTypingUsers.length >
-                0 && (
-                <div className="typing-indicator">
-
-                  <span>
-                    {roomTypingUsers
-                      .map(
-                        (item) =>
-                          item.username
-                      )
-                      .join(", ")}{" "}
-                    {roomTypingUsers.length ===
-                    1
-                      ? "is"
-                      : "are"}{" "}
-                    typing...
-                  </span>
-
-                </div>
+                    <button type="submit" className="send-button" aria-label={t.send} title={t.send}>
+                      <span aria-hidden="true">&#10148;</span>
+                    </button>
+                  </form>
+                </>
               )}
-
-              {/* ROOM FORM */}
-
-              <form
-                className="message-form"
-                onSubmit={
-                  sendRoomMessage
-                }
-              >
-
-                <span className="message-input-shell">
-                  <FileAttachmentPicker
-                    disabled={!socket.connected}
-                    onSendAttachment={
-                      sendRoomAttachmentMessage
-                    }
-                  />
-
-                  <input
-                    type="text"
-                    name="room-message"
-                    value={roomMessage}
-                    placeholder={`Message ${selectedRoom.name}...`}
-                    onChange={
-                      handleRoomTyping
-                    }
-                  />
-                </span>
-
-                <VoiceRecorder
-                  disabled={!socket.connected}
-                  onSendVoice={
-                    sendRoomVoiceMessage
-                  }
-                />
-
-                <button
-                  type="submit"
-                  className="send-button"
-                  aria-label={t.send}
-                  title={t.send}
-                >
-                  <span aria-hidden="true">&#10148;</span>
-                </button>
-
-              </form>
-
             </>
           )
         )}

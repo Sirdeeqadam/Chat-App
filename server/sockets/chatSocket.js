@@ -2080,6 +2080,58 @@ const initializeChatSocket = (
       );
 
       // =====================================================
+      // VOICE RECORDING STATUS
+      // =====================================================
+
+      const relayRecordingStatus = (
+        data = {},
+        eventName
+      ) => {
+        try {
+          const { receiver, roomId } = data;
+          const payload = {
+            userId,
+            username: socket.username || "User",
+          };
+
+          if (roomId) {
+            const normalizedRoomId =
+              normalizeRoomId(roomId);
+
+            if (
+              !isValidObjectId(normalizedRoomId) ||
+              !socket.rooms.has(normalizedRoomId)
+            ) {
+              return;
+            }
+
+            socket.to(normalizedRoomId).emit(eventName, {
+              ...payload,
+              roomId: normalizedRoomId,
+            });
+            return;
+          }
+
+          if (receiver && isValidObjectId(receiver)) {
+            emitToUser(io, receiver, eventName, payload);
+          }
+        } catch (error) {
+          console.error(
+            `[SOCKET] ${eventName} error:`,
+            error.message
+          );
+        }
+      };
+
+      socket.on("recording", (data = {}) => {
+        relayRecordingStatus(data, "user_recording");
+      });
+
+      socket.on("stop_recording", (data = {}) => {
+        relayRecordingStatus(data, "user_stop_recording");
+      });
+
+      // =====================================================
       // DISCONNECT
       // =====================================================
 

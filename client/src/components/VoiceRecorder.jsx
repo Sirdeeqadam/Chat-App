@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import api from "../services/api";
 import { useLanguage } from "../context/LanguageContext";
@@ -7,15 +7,26 @@ const VoiceRecorder = ({
   disabled = false,
   onSendVoice,
   onStarted,
+  onStopped,
 }) => {
   const { t } = useLanguage();
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
+  const onStoppedRef = useRef(onStopped);
+
+  onStoppedRef.current = onStopped;
 
   const [recording, setRecording] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+      onStoppedRef.current?.();
+    }
+  }, []);
 
   const stopStream = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -58,6 +69,7 @@ const VoiceRecorder = ({
         stopStream();
         mediaRecorderRef.current = null;
         setRecording(false);
+        onStopped?.();
 
         if (!blob.size) {
           setError(t.noAudioRecorded);
